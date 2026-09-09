@@ -292,6 +292,14 @@ document.getElementById("look-btns").addEventListener("click", (e) => {
   document.querySelectorAll("#look-btns .look").forEach((b) => b.classList.toggle("on", b === btn));
 });
 on("scan-apply", "click", () => reprocessScan());
+document.addEventListener("click", (e) => {
+  const t = e.target;
+  if (!t || !t.dataset || t.dataset.qrm === undefined) return;
+  if (!t.closest("#scan-preview")) return;
+  scanPages.splice(Number(t.dataset.qrm), 1);
+  updateQueue();
+  renderScan();
+});
 
 function renderScan() {
   updateQueue();
