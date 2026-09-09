@@ -64,7 +64,7 @@ test("allowedFile bloqueia executáveis", () => {
   assert.equal(allowedFile("x.exe", "application/octet-stream", "image"), false);
   assert.equal(allowedFile("a.jpg", "image/jpeg", "image"), true);
   assert.equal(allowedFile("a.pdf", "application/pdf", "pdf"), true);
-  assert.equal(allowedFile("a.pdf", "application/pdf", "image"), false);
+  assert.equal(allowedFile("a.pdf", "application/pdf", "image"), true);
 });
 
 test("sanitize e escape anti-XSS", () => {

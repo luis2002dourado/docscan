@@ -67,7 +67,11 @@ export function applyHomography(h, x, y) {
 export function allowedFile(name, type, kind) {
   const n = (name || "").toLowerCase();
   if (kind === "image") {
-    return /^image\/(jpeg|jpg|png|webp|gif|bmp)$/.test(type) || /\.(jpe?g|png|webp|gif|bmp)$/.test(n);
+    return (
+      /^image\/(jpeg|jpg|png|webp|gif|bmp)$/.test(type) ||
+      type === "application/pdf" ||
+      /\.(jpe?g|png|webp|gif|bmp|pdf)$/.test(n)
+    );
   }
   if (kind === "pdf") return type === "application/pdf" || n.endsWith(".pdf");
   return false;

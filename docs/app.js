@@ -126,44 +126,73 @@ function scanSettings() {
   return { mode: $("scan-mode").value, look: $("scan-look").value };
 }
 
+async function pdfPagesToImages(file) {
+  const data = new Uint8Array(await file.arrayBuffer());
+  const pdf = await pdfjsLib.getDocument({ data }).promise;
+  const imgs = [];
+  for (let n = 1; n <= pdf.numPages; n++) {
+    const page = await pdf.getPage(n);
+    const viewport = page.getViewport({ scale: 1.6 });
+    const canvas = document.createElement("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+    const img = new Image();
+    img.src = canvas.toDataURL("image/jpeg", 0.92);
+    await new Promise((res, rej) => {
+      img.onload = res;
+      img.onerror = rej;
+    });
+    imgs.push(img);
+  }
+  return imgs;
+}
+
 async function addImages(files) {
   const { mode, look } = scanSettings();
   const doOcr = $("scan-ocr").checked;
   const list = [...files];
   if (!list.length) return;
-  fxShow("Digitalizando e recortando…");
+  fxShow("Processando arquivos…");
   for (const raw of list) {
     const file = readFile(raw, "image");
     if (!file) continue;
     toast("Processando " + file.name + "…");
-    const img = await loadImage(file);
-    const canvas = await processPhoto(img, mode, look);
-    let text = "";
-    if (doOcr && window.Tesseract) {
-      fxShow("Lendo texto (OCR)…");
-      try {
-        const res = await Tesseract.recognize(canvas, "por+eng", { logger: () => {} });
-        text = (res.data && res.data.text) || "";
-      } catch {
-        text = "";
+    const isPdf = /pdf$/i.test(file.type) || /\.pdf$/i.test(file.name);
+    const sources = isPdf ? await pdfPagesToImages(file) : [await loadImage(file)];
+    for (const img of sources) {
+      const canvas = await processPhoto(img, mode, look);
+      let text = "";
+      if (doOcr && window.Tesseract) {
+        fxShow("Lendo texto (OCR)…");
+        try {
+          const res = await Tesseract.recognize(canvas, "por+eng", { logger: () => {} });
+          text = (res.data && res.data.text) || "";
+        } catch {
+          text = "";
+        }
       }
+      scanPages.push({ img, canvas, name: sanitizeFilename(file.name), text });
     }
-    scanPages.push({ img, canvas, name: sanitizeFilename(file.name), text });
     renderScan();
   }
   fxHide();
-  toast("Páginas prontas.");
+  toast("Pronto. Mude recorte ou realce sem enviar de novo.");
 }
 
 async function reprocessScan() {
-  if (!scanPages.length) return;
+  if (!scanPages.length) {
+    toast("Envie a foto ou o PDF uma vez. Depois é só trocar o botão.");
+    return;
+  }
   const { mode, look } = scanSettings();
-  fxShow("Aplicando aparência…");
+  fxShow("Aplicando na mesma página…");
   for (const p of scanPages) {
     p.canvas = await processPhoto(p.img, mode, look);
   }
   renderScan();
   fxHide();
+  toast("Filtro atualizado sem reenviar o arquivo.");
 }
 $("scan-look").addEventListener("change", reprocessScan);
 $("scan-mode").addEventListener("change", reprocessScan);
