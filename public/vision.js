@@ -216,12 +216,53 @@ export function enhanceDocument(canvas, mode) {
   const d = img.data;
   if (mode === "original") return canvas;
   for (let i = 0; i < d.length; i += 4) {
-    let y = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-    y = (y - 128) * 1.35 + 128 + 12;
-    y = Math.min(255, Math.max(0, y));
+    let r = d[i],
+      g = d[i + 1],
+      b = d[i + 2];
+    const y = 0.299 * r + 0.587 * g + 0.114 * b;
     if (mode === "bw") {
-      const v = y > 165 ? 255 : 18;
+      const v = ((y - 128) * 1.4 + 140) > 168 ? 255 : 18;
       d[i] = d[i + 1] = d[i + 2] = v;
+    } else if (mode === "bw_soft") {
+      const v = Math.min(255, Math.max(0, (y - 128) * 1.25 + 140));
+      d[i] = d[i + 1] = d[i + 2] = v;
+    } else if (mode === "color_paper") {
+      const paper = Math.min(255, y + (255 - y) * 0.35 + 18);
+      const ink = y < 150;
+      if (!ink) {
+        d[i] = d[i + 1] = d[i + 2] = paper;
+      } else {
+        const k = 1.25;
+        d[i] = Math.min(255, Math.max(0, (r - 128) * k + 118));
+        d[i + 1] = Math.min(255, Math.max(0, (g - 128) * k + 118));
+        d[i + 2] = Math.min(255, Math.max(0, (b - 128) * k + 118));
+      }
+    } else if (mode === "color_ink") {
+      const t = y / 255;
+      const boost = t < 0.55 ? 1.45 : 1.08;
+      d[i] = Math.min(255, Math.max(0, (r - 20) * boost));
+      d[i + 1] = Math.min(255, Math.max(0, (g - 20) * boost));
+      d[i + 2] = Math.min(255, Math.max(0, (b - 18) * boost));
+    } else if (mode === "color_vivid") {
+      const gray = y;
+      const sat = 1.55;
+      d[i] = Math.min(255, Math.max(0, gray + (r - gray) * sat));
+      d[i + 1] = Math.min(255, Math.max(0, gray + (g - gray) * sat));
+      d[i + 2] = Math.min(255, Math.max(0, gray + (b - gray) * sat));
+      d[i] = Math.min(255, (d[i] - 128) * 1.2 + 132);
+      d[i + 1] = Math.min(255, (d[i + 1] - 128) * 1.2 + 132);
+      d[i + 2] = Math.min(255, (d[i + 2] - 128) * 1.2 + 132);
+    } else if (mode === "color_cool") {
+      const paper = Math.min(255, y * 1.12 + 22);
+      if (y > 170) {
+        d[i] = paper * 0.92;
+        d[i + 1] = paper * 0.98;
+        d[i + 2] = Math.min(255, paper);
+      } else {
+        d[i] = Math.min(255, r * 0.92);
+        d[i + 1] = Math.min(255, g * 1.02);
+        d[i + 2] = Math.min(255, b * 1.12);
+      }
     } else {
       const paper = Math.min(255, y * 1.08 + 8);
       d[i] = d[i + 1] = d[i + 2] = paper;
@@ -231,7 +272,7 @@ export function enhanceDocument(canvas, mode) {
   return canvas;
 }
 
-export async function processPhoto(img, mode) {
+export async function processPhoto(img, mode, look) {
   const src = document.createElement("canvas");
   const maxW = 1400;
   const scale = img.width > maxW ? maxW / img.width : 1;
@@ -240,7 +281,8 @@ export async function processPhoto(img, mode) {
   src.getContext("2d").drawImage(img, 0, 0, src.width, src.height);
 
   let work = src;
-  if (mode === "auto") {
+  const crop = mode === "auto";
+  if (crop) {
     const small = document.createElement("canvas");
     const s = 360 / Math.max(src.width, src.height);
     small.width = Math.max(2, Math.round(src.width * s));
@@ -254,9 +296,7 @@ export async function processPhoto(img, mode) {
       const h = Math.round(Math.max(dist(quad[0], quad[3]), dist(quad[1], quad[2])));
       work = warpToCanvas(src, quad, clamp(w, 400, 1600), clamp(h, 400, 2200));
     }
-    enhanceDocument(work, "enhance");
-  } else if (mode === "enhance" || mode === "bw") {
-    enhanceDocument(work, mode);
   }
+  enhanceDocument(work, look || "color_paper");
   return work;
 }

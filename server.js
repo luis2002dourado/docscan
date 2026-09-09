@@ -69,7 +69,7 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.use((_req, res) => {
-  res.status(404).sendFile(path.join(__dirname, "public", "index.html"));
+  res.status(404).sendFile(path.join(__dirname, "public", "404.html"));
 });
 
 app.listen(PORT, "0.0.0.0", () => {

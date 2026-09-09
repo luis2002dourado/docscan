@@ -14,7 +14,8 @@ test("interface tem as três ferramentas", () => {
   assert.ok(html.includes("data-tab=\"merge\""));
   assert.ok(html.includes("data-tab=\"edit\""));
   assert.ok(html.includes("scan-ocr"));
-  assert.ok(html.includes("Recorte automático"));
+  assert.ok(html.includes("scan-look"));
+  assert.ok(html.includes("scan-print"));
 });
 
 test("estilo Evernote: serif + verde", () => {

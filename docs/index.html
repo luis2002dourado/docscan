@@ -4,7 +4,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="referrer" content="no-referrer" />
-  <title>DocScan — Digitalize como no papel, sem guardar nada</title>
+  <title>DocScan — digitalizar, juntar e editar PDF no navegador</title>
+  <meta name="description" content="Digitalize papéis, una PDFs e gire páginas no navegador. Recorte automático, realce e OCR opcional. Até 25 MB. Nada é guardado no site." />
+  <link rel="canonical" href="https://luis2002dourado.github.io/docscan/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="DocScan — PDF no navegador, sem nuvem nossa" />
+  <meta property="og:description" content="Recorte, realce, OCR, juntar e editar PDFs no seu aparelho." />
+  <meta property="og:image" content="https://luis2002dourado.github.io/docscan/og-share.png" />
+  <meta property="og:url" content="https://luis2002dourado.github.io/docscan/" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"DocScan","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"BRL"},"areaServed":"BR"}
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -17,13 +28,17 @@
       <span class="leaf"></span> DocScan
     </a>
     <nav>
-      <a href="#como">Como funciona</a>
-      <a href="#app">Ferramenta</a>
-      <a href="#privacidade">Privacidade</a>
+      <a href="digitalizar.html">Digitalizar</a>
+      <a href="juntar-pdf.html">Juntar</a>
+      <a href="editar-pdf.html">Editar</a>
+      <a href="casos.html">Casos</a>
+      <a href="faq.html">FAQ</a>
+      <a href="contato.html">Contato</a>
     </nav>
-    <a class="go" href="#app">Começar</a>
+    <a class="go" href="#app">Digitalizar agora</a>
   </header>
 
+  <nav class="crumbs"><a href="./">Início</a> / Ferramenta</nav>
   <main id="topo">
     <section class="hero scene" data-depth="0.12">
       <div class="hero-copy">
@@ -33,7 +48,8 @@
           Recorte automático da folha, realce de scanner, OCR e PDF —
           no navegador, no estilo de um caderno calmo.
         </p>
-        <a class="go large" href="#app">Abrir a mesa de trabalho</a>
+        <a class="go large" href="#app">Digitalizar agora</a>
+        <p class="promise">Promessa: o arquivo não sobe para um servidor nosso. Resposta a issues em até 2 dias úteis, sem plantão 24h.</p>
       </div>
       <div class="stack3d" id="hero-stack">
         <article class="paper p1" data-tilt>Contrato</article>
@@ -72,16 +88,30 @@
         <div class="tools">
           <label class="chip">Arquivos<input id="scan-files" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden /></label>
           <label class="chip">Câmera<input id="scan-cam" type="file" accept="image/*" capture="environment" hidden /></label>
-          <label>Modo
+          <label>Recorte
             <select id="scan-mode">
-              <option value="auto" selected>Recorte automático + realce</option>
-              <option value="enhance">Só realce</option>
-              <option value="original">Original</option>
-              <option value="bw">Preto e branco</option>
+              <option value="auto" selected>Automático</option>
+              <option value="none">Sem recorte</option>
+            </select>
+          </label>
+          <label>Aparência
+            <select id="scan-look">
+              <optgroup label="Colorido">
+                <option value="color_paper" selected>Papel branco (destaque o texto)</option>
+                <option value="color_ink">Tinta nítida (carimbos e caneta)</option>
+                <option value="color_vivid">Cores vivas</option>
+                <option value="color_cool">Papel frio (menos amarelo)</option>
+                <option value="original">Foto original</option>
+              </optgroup>
+              <optgroup label="Preto e branco">
+                <option value="bw">P&B nítido</option>
+                <option value="bw_soft">P&B suave (cinza)</option>
+              </optgroup>
             </select>
           </label>
           <label class="chk"><input type="checkbox" id="scan-ocr" /> OCR (pt+en)</label>
           <button class="chip ghost" id="scan-clear" type="button">Limpar sessão</button>
+          <button class="chip" id="scan-print" type="button">Imprimir</button>
           <button class="chip green" id="scan-export" type="button">Exportar PDF</button>
         </div>
         <div id="scan-empty" class="void">Solte imagens aqui ou use os botões. Nada é enviado.</div>
@@ -92,6 +122,7 @@
         <div class="tools">
           <label class="chip">Adicionar PDFs<input id="merge-files" type="file" accept="application/pdf" multiple hidden /></label>
           <button class="chip ghost" id="merge-clear" type="button">Limpar</button>
+          <button class="chip" id="merge-print" type="button">Imprimir</button>
           <button class="chip green" id="merge-export" type="button">Baixar unido</button>
         </div>
         <div id="merge-empty" class="void">Dois ou mais PDFs, só nesta sessão.</div>
@@ -110,11 +141,41 @@
       </div>
     </section>
 
+    <section id="casos" class="work">
+      <h2>Casos de uso</h2>
+      <p class="note">Exemplos de situação — não são depoimentos de clientes.</p>
+      <div class="cases">
+        <article class="case">
+          <img src="img-scanner.jpg" width="640" height="480" alt="Mesa com papel, caderno e celular para fotografar um comprovante" />
+          <div><h3>Comprovante</h3><p>Foto para PDF em um passo.</p><a href="digitalizar.html">Digitalizar</a></div>
+        </article>
+        <article class="case">
+          <img src="img-merge.jpg" width="640" height="480" alt="Vários documentos ao lado do notebook para unir em um PDF" />
+          <div><h3>Unir arquivos</h3><p>Vários PDFs, um download.</p><a href="juntar-pdf.html">Juntar</a></div>
+        </article>
+        <article class="case">
+          <img src="img-edit.jpg" width="640" height="480" alt="Folhas impressas com lápis e régua para ajustar páginas do PDF" />
+          <div><h3>Ajustar páginas</h3><p>Girar ou apagar folhas.</p><a href="editar-pdf.html">Editar</a></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="faq" class="work faq">
+      <h2>Cinco perguntas</h2>
+      <details><summary>Os arquivos vão para a nuvem?</summary><p>Não para um servidor nosso. Tudo roda no navegador.</p></details>
+      <details><summary>Quais formatos?</summary><p>JPEG, PNG, WebP e PDF, até 25 MB cada.</p></details>
+      <details><summary>O OCR erra?</summary><p>Pode errar. Revise o texto extraído.</p></details>
+      <details><summary>E se o recorte falhar?</summary><p>Use só realce ou original.</p></details>
+      <details><summary>Como falar com o projeto?</summary><p>GitHub Issues, até 2 dias úteis no melhor esforço. <a href="faq.html">FAQ completa</a></p></details>
+    </section>
+
     <section id="privacidade" class="privacy scene">
-      <h2>Sem nuvem. Sem conta. Sem rastro.</h2>
-      <p>Não há banco de dados. POST é recusado. Cache desligado. Fechar a aba zera a memória.</p>
+      <h2>Sem conta. Sem rastro nosso.</h2>
+      <p>Fechar a aba zera a memória. Leia a <a href="privacidade.html">política de privacidade</a> e os <a href="termos.html">termos</a>.</p>
+      <p><a href="sobre.html">Sobre</a> · <a href="contato.html">Contato e mapa</a> · <a href="obrigado.html">Obrigado</a></p>
     </section>
   </main>
+  <a class="cta-bar" href="#app">Digitalizar agora</a>
 
   <div id="modal" class="modal hide">
     <div class="sheet">

@@ -122,8 +122,12 @@ function loadImage(file) {
   });
 }
 
+function scanSettings() {
+  return { mode: $("scan-mode").value, look: $("scan-look").value };
+}
+
 async function addImages(files) {
-  const mode = $("scan-mode").value;
+  const { mode, look } = scanSettings();
   const doOcr = $("scan-ocr").checked;
   const list = [...files];
   if (!list.length) return;
@@ -133,7 +137,7 @@ async function addImages(files) {
     if (!file) continue;
     toast("Processando " + file.name + "…");
     const img = await loadImage(file);
-    const canvas = await processPhoto(img, mode);
+    const canvas = await processPhoto(img, mode, look);
     let text = "";
     if (doOcr && window.Tesseract) {
       fxShow("Lendo texto (OCR)…");
@@ -144,12 +148,25 @@ async function addImages(files) {
         text = "";
       }
     }
-    scanPages.push({ canvas, name: sanitizeFilename(file.name), text });
+    scanPages.push({ img, canvas, name: sanitizeFilename(file.name), text });
     renderScan();
   }
   fxHide();
   toast("Páginas prontas.");
 }
+
+async function reprocessScan() {
+  if (!scanPages.length) return;
+  const { mode, look } = scanSettings();
+  fxShow("Aplicando aparência…");
+  for (const p of scanPages) {
+    p.canvas = await processPhoto(p.img, mode, look);
+  }
+  renderScan();
+  fxHide();
+}
+$("scan-look").addEventListener("change", reprocessScan);
+$("scan-mode").addEventListener("change", reprocessScan);
 
 function renderScan() {
   $("scan-empty").classList.toggle("hide", scanPages.length > 0);
@@ -437,3 +454,85 @@ async function downloadPdf(pdf, name) {
   a.click();
   toast("Download iniciado. Nada ficou no servidor.");
 }
+
+function printCanvases(canvases) {
+  if (!canvases.length) return toast("Nada para imprimir.");
+  const w = window.open("", "_blank");
+  if (!w) return toast("Permita pop-ups para imprimir.");
+  w.document.write(
+    `<html><head><title>Imprimir</title><style>
+      @page { margin: 10mm; }
+      body { margin: 0; }
+      img { width: 100%; page-break-after: always; display: block; }
+    </style></head><body></body></html>`
+  );
+  canvases.forEach((c) => {
+    const img = w.document.createElement("img");
+    img.src = c.toDataURL("image/jpeg", 0.92);
+    w.document.body.appendChild(img);
+  });
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 400);
+}
+
+async function printPdfBytes(bytes) {
+  const blob = new Blob([bytes], { type: "application/pdf" });
+  const url = trackUrl(URL.createObjectURL(blob));
+  const w = window.open(url, "_blank");
+  if (!w) return toast("Permita pop-ups para imprimir.");
+  setTimeout(() => {
+    try {
+      w.print();
+    } catch {
+      /* ignore */
+    }
+  }, 800);
+}
+
+$("scan-print").addEventListener("click", () => {
+  printCanvases(scanPages.map((p) => p.canvas));
+});
+$("merge-print").addEventListener("click", async () => {
+  if (!mergeItems.length) return toast("Adicione PDFs.");
+  fxShow("Preparando impressão…");
+  const { PDFDocument } = PDFLib;
+  const out = await PDFDocument.create();
+  for (const it of mergeItems) {
+    const src = await PDFDocument.load(it.bytes);
+    const pages = await out.copyPages(src, src.getPageIndices());
+    pages.forEach((p) => out.addPage(p));
+  }
+  await printPdfBytes(await out.save());
+  fxHide();
+});
+$("edit-print").addEventListener("click", async () => {
+  if (!editState) return toast("Abra um PDF.");
+  fxShow("Preparando impressão…");
+  const { PDFDocument, StandardFonts, rgb, degrees } = PDFLib;
+  const src = await PDFDocument.load(editState.bytes);
+  const out = await PDFDocument.create();
+  const font = await out.embedFont(StandardFonts.Helvetica);
+  const keep = editState.order.filter((i) => !editState.deleted.has(i));
+  const copied = await out.copyPages(src, keep);
+  copied.forEach((page, n) => {
+    const orig = keep[n];
+    page.setRotation(degrees(editState.rotations[orig] || 0));
+    const { width, height } = page.getSize();
+    editState.texts
+      .filter((t) => t.page === orig && t.text)
+      .forEach((t) => {
+        page.drawText(t.text, {
+          x: (t.x / 100) * width,
+          y: height - (t.y / 100) * height - 14,
+          size: 14,
+          font,
+          color: rgb(0.1, 0.1, 0.1),
+        });
+      });
+    out.addPage(page);
+  });
+  await printPdfBytes(await out.save());
+  fxHide();
+});
+
