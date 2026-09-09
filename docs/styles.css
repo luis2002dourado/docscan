@@ -76,8 +76,8 @@ body {
 }
 .mark { display: flex; gap: 10px; align-items: center; font-weight: 700; color: var(--baltic); text-decoration: none; }
 .logo {
-  width: 44px; height: 44px; object-fit: contain; border-radius: 50%;
-  display: block; background: #000;
+  width: 44px; height: 44px; object-fit: cover; border-radius: 50%;
+  display: block; background: #05668d;
 }
 .top nav { display: flex; gap: 18px; }
 .top nav a { color: var(--teal); text-decoration: none; font-size: 14px; transition: color 0.2s; }
