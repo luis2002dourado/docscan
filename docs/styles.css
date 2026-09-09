@@ -88,6 +88,20 @@ body {
   margin: 0;
   border-top: 1px solid var(--line);
   background: var(--paper);
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+}
+.aviso {
+  max-width: 420px;
+  margin: 0;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.4;
 }
 .top nav { display: flex; gap: 18px; }
 .top nav a { color: var(--teal); text-decoration: none; font-size: 14px; transition: color 0.2s; }
