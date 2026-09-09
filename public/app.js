@@ -168,6 +168,21 @@ async function reprocessScan() {
 $("scan-look").addEventListener("change", reprocessScan);
 $("scan-mode").addEventListener("change", reprocessScan);
 
+document.getElementById("mode-btns").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-mode]");
+  if (!btn) return;
+  $("scan-mode").value = btn.dataset.mode;
+  document.querySelectorAll("#mode-btns .look").forEach((b) => b.classList.toggle("on", b === btn));
+  reprocessScan();
+});
+document.getElementById("look-btns").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-look]");
+  if (!btn) return;
+  $("scan-look").value = btn.dataset.look;
+  document.querySelectorAll("#look-btns .look").forEach((b) => b.classList.toggle("on", b === btn));
+  reprocessScan();
+});
+
 function renderScan() {
   $("scan-empty").classList.toggle("hide", scanPages.length > 0);
   const grid = $("scan-grid");

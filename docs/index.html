@@ -48,7 +48,7 @@
           Recorte automático da folha, realce de scanner, OCR e PDF —
           no navegador, no estilo de um caderno calmo.
         </p>
-        <a class="go large" href="#app">Digitalizar agora</a>
+        <a class="go large" href="#ajuste">Ir para recorte e realce</a>
         <p class="promise">Promessa: o arquivo não sobe para um servidor nosso. Resposta a issues em até 2 dias úteis, sem plantão 24h.</p>
       </div>
       <div class="stack3d" id="hero-stack">
@@ -88,31 +88,42 @@
         <div class="tools">
           <label class="chip">Arquivos<input id="scan-files" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden /></label>
           <label class="chip">Câmera<input id="scan-cam" type="file" accept="image/*" capture="environment" hidden /></label>
-          <label>Recorte
-            <select id="scan-mode">
-              <option value="auto" selected>Automático</option>
-              <option value="none">Sem recorte</option>
-            </select>
-          </label>
-          <label>Aparência
-            <select id="scan-look">
-              <optgroup label="Colorido">
-                <option value="color_paper" selected>Papel branco (destaque o texto)</option>
-                <option value="color_ink">Tinta nítida (carimbos e caneta)</option>
-                <option value="color_vivid">Cores vivas</option>
-                <option value="color_cool">Papel frio (menos amarelo)</option>
-                <option value="original">Foto original</option>
-              </optgroup>
-              <optgroup label="Preto e branco">
-                <option value="bw">P&B nítido</option>
-                <option value="bw_soft">P&B suave (cinza)</option>
-              </optgroup>
-            </select>
-          </label>
           <label class="chk"><input type="checkbox" id="scan-ocr" /> OCR (pt+en)</label>
           <button class="chip ghost" id="scan-clear" type="button">Limpar sessão</button>
           <button class="chip" id="scan-print" type="button">Imprimir</button>
           <button class="chip green" id="scan-export" type="button">Exportar PDF</button>
+        </div>
+        <div class="adjust" id="ajuste">
+          <h3>1. Recorte da folha</h3>
+          <p class="note">Depois de enviar a foto, escolha se o DocScan corta só o papel ou mantém a imagem inteira.</p>
+          <select id="scan-mode" class="sr-only" aria-hidden="true">
+            <option value="auto" selected>auto</option>
+            <option value="none">none</option>
+          </select>
+          <div class="looks" id="mode-btns">
+            <button type="button" class="look on" data-mode="auto">Recortar automaticamente</button>
+            <button type="button" class="look" data-mode="none">Sem recorte (foto inteira)</button>
+          </div>
+          <h3>2. Realce colorido</h3>
+          <p class="note">Teste as opções para ver qual deixa o texto e os carimbos mais legíveis. A página atualiza na hora.</p>
+          <select id="scan-look" class="sr-only" aria-hidden="true">
+            <option value="color_paper" selected>color_paper</option>
+            <option value="color_ink">color_ink</option>
+            <option value="color_vivid">color_vivid</option>
+            <option value="color_cool">color_cool</option>
+            <option value="original">original</option>
+            <option value="bw">bw</option>
+            <option value="bw_soft">bw_soft</option>
+          </select>
+          <div class="looks" id="look-btns">
+            <button type="button" class="look on" data-look="color_paper">Colorido · papel branco</button>
+            <button type="button" class="look" data-look="color_ink">Colorido · tinta nítida</button>
+            <button type="button" class="look" data-look="color_vivid">Colorido · cores vivas</button>
+            <button type="button" class="look" data-look="color_cool">Colorido · menos amarelo</button>
+            <button type="button" class="look" data-look="original">Colorido · foto original</button>
+            <button type="button" class="look" data-look="bw">Preto e branco nítido</button>
+            <button type="button" class="look" data-look="bw_soft">Preto e branco suave</button>
+          </div>
         </div>
         <div id="scan-empty" class="void">Solte imagens aqui ou use os botões. Nada é enviado.</div>
         <div id="scan-grid" class="grid"></div>
@@ -175,7 +186,7 @@
       <p><a href="sobre.html">Sobre</a> · <a href="contato.html">Contato e mapa</a> · <a href="obrigado.html">Obrigado</a></p>
     </section>
   </main>
-  <a class="cta-bar" href="#app">Digitalizar agora</a>
+  <a class="cta-bar" href="#ajuste">Recorte e realce</a>
 
   <div id="modal" class="modal hide">
     <div class="sheet">
