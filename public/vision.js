@@ -19,10 +19,12 @@ export function quadArea(q) {
 }
 export function isValidQuad(q, w, h) {
   if (!q || q.length !== 4) return false;
-  if (quadArea(q) < w * h * 0.12) return false;
+  const a = quadArea(q);
+  if (a < w * h * 0.08) return false;
+  if (a > w * h * 0.93) return false;
   const [tl, tr, br, bl] = q;
-  if (dist(tl, tr) < w * 0.2 || dist(bl, br) < w * 0.2) return false;
-  if (dist(tl, bl) < h * 0.2 || dist(tr, br) < h * 0.2) return false;
+  if (dist(tl, tr) < w * 0.12 || dist(bl, br) < w * 0.12) return false;
+  if (dist(tl, bl) < h * 0.12 || dist(tr, br) < h * 0.12) return false;
   return true;
 }
 export function solveHomography(src, dst) {
@@ -107,18 +109,70 @@ export function detectDocumentQuad(imageData, w, h) {
   }
   let max = 0;
   for (let i = 0; i < mag.length; i++) if (mag[i] > max) max = mag[i];
-  const thr = max * 0.18;
-  const pts = [];
-  const step = 3;
-  for (let y = 2; y < h - 2; y += step) {
-    for (let x = 2; x < w - 2; x += step) {
-      if (mag[y * w + x] > thr) pts.push({ x, y });
+  const mx = Math.max(4, Math.round(w * 0.04));
+  const my = Math.max(4, Math.round(h * 0.04));
+
+  const fromEdges = (thrMul, inset) => {
+    const thr = max * thrMul;
+    const pts = [];
+    const step = 2;
+    const x0 = inset ? mx : 2;
+    const y0 = inset ? my : 2;
+    const x1 = inset ? w - mx : w - 2;
+    const y1 = inset ? h - my : h - 2;
+    for (let y = y0; y < y1; y += step) {
+      for (let x = x0; x < x1; x += step) {
+        if (mag[y * w + x] > thr) pts.push({ x, y });
+      }
+    }
+    if (pts.length < 24) return null;
+    const q = orderQuad(approxQuad(convexHull(pts)));
+    return isValidQuad(q, w, h) ? q : null;
+  };
+
+  let q = fromEdges(0.22, true) || fromEdges(0.16, true) || fromEdges(0.22, false);
+  if (q) return q;
+
+  let border = 0;
+  let bn = 0;
+  for (let x = 0; x < w; x += 2) {
+    border += gray[x] + gray[(h - 1) * w + x];
+    bn += 2;
+  }
+  for (let y = 0; y < h; y += 2) {
+    border += gray[y * w] + gray[y * w + w - 1];
+    bn += 2;
+  }
+  const desk = border / Math.max(1, bn);
+  const paperThr = Math.min(210, Math.max(desk + 22, 118));
+  const paper = [];
+  for (let y = my; y < h - my; y += 2) {
+    for (let x = mx; x < w - mx; x += 2) {
+      if (gray[y * w + x] >= paperThr) paper.push({ x, y });
     }
   }
-  if (pts.length < 30) return null;
-  const hull = convexHull(pts);
-  const quad = approxQuad(hull);
-  return isValidQuad(quad, w, h) ? orderQuad(quad) : null;
+  if (paper.length > 40) {
+    const pq = orderQuad(approxQuad(convexHull(paper)));
+    if (isValidQuad(pq, w, h)) return pq;
+    let minX = w,
+      minY = h,
+      maxX = 0,
+      maxY = 0;
+    for (const p of paper) {
+      if (p.x < minX) minX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y > maxY) maxY = p.y;
+    }
+    const box = orderQuad([
+      { x: minX, y: minY },
+      { x: maxX, y: minY },
+      { x: maxX, y: maxY },
+      { x: minX, y: maxY },
+    ]);
+    if (isValidQuad(box, w, h)) return box;
+  }
+  return null;
 }
 
 function convexHull(points) {
@@ -277,25 +331,32 @@ export function enhanceDocument(canvas, mode) {
 }
 
 export async function processPhoto(img, mode, look) {
+  const iw = img.naturalWidth || img.width || 0;
+  const ih = img.naturalHeight || img.height || 0;
   const src = document.createElement("canvas");
   const maxW = 1400;
-  const scale = img.width > maxW ? maxW / img.width : 1;
-  src.width = Math.round(img.width * scale);
-  src.height = Math.round(img.height * scale);
+  const scale = iw > maxW ? maxW / Math.max(1, iw) : 1;
+  src.width = Math.max(1, Math.round(iw * scale));
+  src.height = Math.max(1, Math.round(ih * scale));
   src.getContext("2d").drawImage(img, 0, 0, src.width, src.height);
 
   let work = src;
   const crop = mode === "auto";
   if (crop) {
-    const small = document.createElement("canvas");
-    const s = 360 / Math.max(src.width, src.height);
-    small.width = Math.max(2, Math.round(src.width * s));
-    small.height = Math.max(2, Math.round(src.height * s));
-    small.getContext("2d").drawImage(src, 0, 0, small.width, small.height);
-    const id = small.getContext("2d").getImageData(0, 0, small.width, small.height);
-    const q = detectDocumentQuad(id, small.width, small.height);
-    if (q) {
-      const quad = q.map((p) => ({ x: p.x / s, y: p.y / s }));
+    const tryDetect = (longSide) => {
+      const small = document.createElement("canvas");
+      const s = longSide / Math.max(src.width, src.height, 1);
+      small.width = Math.max(8, Math.round(src.width * s));
+      small.height = Math.max(8, Math.round(src.height * s));
+      const sctx = small.getContext("2d", { willReadFrequently: true });
+      sctx.drawImage(src, 0, 0, small.width, small.height);
+      const id = sctx.getImageData(0, 0, small.width, small.height);
+      const q = detectDocumentQuad(id, small.width, small.height);
+      if (!q) return null;
+      return q.map((p) => ({ x: p.x / s, y: p.y / s }));
+    };
+    const quad = tryDetect(420) || tryDetect(280);
+    if (quad) {
       const w = Math.round(Math.max(dist(quad[0], quad[1]), dist(quad[3], quad[2])));
       const h = Math.round(Math.max(dist(quad[0], quad[3]), dist(quad[1], quad[2])));
       work = warpToCanvas(src, quad, clamp(w, 400, 1600), clamp(h, 400, 2200));

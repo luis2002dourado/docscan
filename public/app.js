@@ -141,7 +141,25 @@ function readFile(file, kind) {
 /* SCAN */
 const scanPages = [];
 
-function loadImage(file) {
+async function loadImage(file) {
+  if (typeof createImageBitmap === "function") {
+    try {
+      let bmp;
+      try {
+        bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+      } catch {
+        bmp = await createImageBitmap(file);
+      }
+      const c = document.createElement("canvas");
+      c.width = bmp.width;
+      c.height = bmp.height;
+      c.getContext("2d").drawImage(bmp, 0, 0);
+      if (bmp.close) bmp.close();
+      return c;
+    } catch {
+      /* fallback */
+    }
+  }
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
