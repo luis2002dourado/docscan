@@ -161,85 +161,95 @@ async function pdfPagesToImages(file) {
 }
 
 async function addImages(files) {
-  const { mode, look } = scanSettings();
-  const doOcr = $("scan-ocr").checked;
   const list = [...files];
   if (!list.length) return;
-  fxShow("Processando arquivos…");
+  fxShow("Lendo arquivos…");
   try {
-  for (const raw of list) {
-    const file = readFile(raw, "image");
-    if (!file) continue;
-    toast("Processando " + file.name + "…");
-    const isPdf = /pdf$/i.test(file.type) || /\.pdf$/i.test(file.name);
-    const sources = isPdf ? await pdfPagesToImages(file) : [await loadImage(file)];
-    for (const img of sources) {
-      const canvas = await processPhoto(img, mode, look);
-      scanPages.push({ img, canvas, cropMode: mode, name: sanitizeFilename(file.name), text: "" });
+    for (const raw of list) {
+      const file = readFile(raw, "image");
+      if (!file) continue;
+      const isPdf = /pdf$/i.test(file.type) || /\.pdf$/i.test(file.name);
+      const sources = isPdf ? await pdfPagesToImages(file) : [await loadImage(file)];
+      for (const img of sources) {
+        scanPages.push({ img, canvas: null, base: null, cropMode: "", name: sanitizeFilename(file.name), text: "" });
+      }
     }
-    renderScan();
-  }
-  toast("Pronto. Mude recorte ou realce sem enviar de novo.");
+    updateQueue();
+    toast("Arquivo na fila. Escolha as opções e clique em Aplicar.");
   } catch (err) {
     console.error(err);
-    toast("Falha ao ler o arquivo. Tente JPEG, PNG, WebP ou PDF.");
+    toast("Falha ao ler o arquivo.");
   } finally {
     fxHide();
   }
 }
 
+function updateQueue() {
+  const el = $("scan-queue");
+  if (!el) return;
+  const n = scanPages.length;
+  el.textContent = n ? n + " arquivo(s) na fila. Escolha recorte/realce e clique Aplicar." : "Nenhum arquivo na fila.";
+}
+
 async function reprocessScan() {
   if (!scanPages.length) {
-    toast("Envie a foto ou o PDF uma vez. Depois é só trocar o botão.");
+    toast("Envie um arquivo primeiro.");
     return;
   }
   const { mode, look } = scanSettings();
-  fxShow("Aplicando na mesma página…");
+  const doOcr = $("scan-ocr") && $("scan-ocr").checked;
+  fxShow("Aplicando…");
   try {
     for (const p of scanPages) {
-      const needCrop = p.cropMode !== mode || !p.base;
-      if (needCrop) {
-        p.base = await processPhoto(p.img, mode, "original");
-        p.cropMode = mode;
-      }
+      p.base = await processPhoto(p.img, mode, "original");
+      p.cropMode = mode;
       const copy = document.createElement("canvas");
       copy.width = p.base.width;
       copy.height = p.base.height;
       copy.getContext("2d").drawImage(p.base, 0, 0);
       p.canvas = enhanceDocument(copy, look);
+      if (doOcr && window.Tesseract) {
+        try {
+          const res = await Tesseract.recognize(p.canvas, "por+eng", { logger: () => {} });
+          p.text = (res.data && res.data.text) || "";
+        } catch {
+          p.text = "";
+        }
+      }
     }
     renderScan();
-    toast("Filtro atualizado sem reenviar o arquivo.");
+    toast("Pronto. Confira o resultado abaixo.");
   } catch (err) {
     console.error(err);
-    toast("Não deu para aplicar o filtro nesta foto.");
+    toast("Não deu para aplicar o filtro.");
   } finally {
     fxHide();
   }
 }
-$("scan-look").addEventListener("change", reprocessScan);
-$("scan-mode").addEventListener("change", reprocessScan);
+$("scan-look").addEventListener("change", () => {});
+$("scan-mode").addEventListener("change", () => {});
 
 document.getElementById("mode-btns").addEventListener("click", (e) => {
   const btn = e.target.closest("[data-mode]");
   if (!btn) return;
   $("scan-mode").value = btn.dataset.mode;
   document.querySelectorAll("#mode-btns .look").forEach((b) => b.classList.toggle("on", b === btn));
-  reprocessScan();
 });
 document.getElementById("look-btns").addEventListener("click", (e) => {
   const btn = e.target.closest("[data-look]");
   if (!btn) return;
   $("scan-look").value = btn.dataset.look;
   document.querySelectorAll("#look-btns .look").forEach((b) => b.classList.toggle("on", b === btn));
-  reprocessScan();
 });
+on("scan-apply", "click", () => reprocessScan());
 
 function renderScan() {
-  $("scan-empty").classList.toggle("hide", scanPages.length > 0);
+  updateQueue();
+  $("scan-empty").classList.toggle("hide", scanPages.some((p) => p.canvas));
   const grid = $("scan-grid");
   grid.innerHTML = "";
   scanPages.forEach((p, i) => {
+    if (!p.canvas) return;
     const card = document.createElement("article");
     card.className = "card";
     card.innerHTML = `<div class="thumb"></div>

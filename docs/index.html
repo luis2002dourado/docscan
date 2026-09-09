@@ -3,109 +3,45 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="referrer" content="no-referrer" />
-  <title>DocScan — digitalizar, juntar e editar PDF no navegador</title>
-  <meta name="description" content="Digitalize papéis, una PDFs e gire páginas no navegador. Recorte automático, realce e OCR opcional. Até 25 MB. Nada é guardado no site." />
-  <link rel="canonical" href="https://luis2002dourado.github.io/docscan/" />
-  <meta property="og:type" content="website" />
-  <meta property="og:title" content="DocScan — PDF no navegador, sem nuvem nossa" />
-  <meta property="og:description" content="Recorte, realce, OCR, juntar e editar PDFs no seu aparelho." />
-  <meta property="og:image" content="https://luis2002dourado.github.io/docscan/og-share.png" />
-  <meta property="og:url" content="https://luis2002dourado.github.io/docscan/" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <script type="application/ld+json">
-  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"DocScan","applicationCategory":"UtilitiesApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"BRL"},"areaServed":"BR"}
-  </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <title>DocScan</title>
+  <meta name="description" content="Digitalize, una e edite PDFs no navegador." />
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
-  <div id="cursor" aria-hidden="true"></div>
+<body class="tool-only">
   <header class="top">
-    <a class="mark" href="#topo">
-      <span class="leaf"></span> DocScan
-    </a>
-    <nav>
-      <a href="digitalizar.html">Digitalizar</a>
-      <a href="juntar-pdf.html">Juntar</a>
-      <a href="editar-pdf.html">Editar</a>
-      <a href="casos.html">Casos</a>
-      <a href="faq.html">FAQ</a>
-      <a href="contato.html">Contato</a>
-    </nav>
-    <a class="go" href="#app">Digitalizar agora</a>
+    <span class="mark"><span class="leaf"></span> DocScan</span>
   </header>
 
-  <nav class="crumbs"><a href="./">Início</a> / Ferramenta</nav>
-  <main id="topo">
-    <section class="hero scene" data-depth="0.12">
-      <div class="hero-copy">
-        <p class="kicker">Sessão efêmera · zero armazenamento</p>
-        <h1>Suas notas, seus documentos.<br />Nada fica no servidor.</h1>
-        <p class="lead">
-          Recorte automático da folha, realce de scanner, OCR e PDF —
-          no navegador, no estilo de um caderno calmo.
-        </p>
-        <a class="go large" href="#ajuste">Ir para recorte e realce</a>
-        <p class="promise">Promessa: o arquivo não sobe para um servidor nosso. Resposta a issues em até 2 dias úteis, sem plantão 24h.</p>
-      </div>
-      <div class="stack3d" id="hero-stack">
-        <article class="paper p1" data-tilt>Contrato</article>
-        <article class="paper p2" data-tilt>Recibo</article>
-        <article class="paper p3" data-tilt>Anotação</article>
-      </div>
-    </section>
+  <main class="work">
+    <div class="tabs" role="tablist">
+      <button class="tab on" data-tab="scan" type="button">Digitalizar</button>
+      <button class="tab" data-tab="merge" type="button">Juntar PDFs</button>
+      <button class="tab" data-tab="edit" type="button">Editar PDF</button>
+    </div>
 
-    <section id="como" class="bands">
-      <article class="band" data-scroll>
-        <h2>1. Enquadre</h2>
-        <p>A câmera ou a foto vira um documento. Detectamos as quatro pontas da folha e corrigimos a perspectiva.</p>
-      </article>
-      <article class="band" data-scroll>
-        <h2>2. Realce</h2>
-        <p>Filtros de scanner: branco de papel, tinta nítida, preto e branco ou original.</p>
-      </article>
-      <article class="band" data-scroll>
-        <h2>3. Leia</h2>
-        <p>OCR opcional extrai o texto na hora. Você copia e o original some ao fechar a aba.</p>
-      </article>
-    </section>
-
-    <section id="app" class="work">
-      <div class="work-head">
-        <h2>Mesa de trabalho</h2>
-        <p>Arquivos só existem nesta sessão. Recarregar a página apaga tudo.</p>
-      </div>
-      <div class="tabs" role="tablist">
-        <button class="tab on" data-tab="scan" type="button">Digitalizar</button>
-        <button class="tab" data-tab="merge" type="button">Juntar PDFs</button>
-        <button class="tab" data-tab="edit" type="button">Editar PDF</button>
-      </div>
-
-      <div id="panel-scan" class="panel on">
-        <div class="tools">
-          <label class="chip">Arquivos<input id="scan-files" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple hidden /></label>
-          <label class="chip">Câmera<input id="scan-cam" type="file" accept="image/*" capture="environment" hidden /></label>
-          <label class="chk"><input type="checkbox" id="scan-ocr" /> OCR (pt+en)</label>
-          <button class="chip ghost" id="scan-clear" type="button">Limpar sessão</button>
-          <button class="chip" id="scan-print" type="button">Imprimir</button>
-          <button class="chip green" id="scan-export" type="button">Exportar PDF</button>
-        </div>
-        <div class="adjust" id="ajuste">
-          <h3>1. Recorte da folha</h3>
-          <p class="note">Depois de enviar a foto, escolha se o DocScan corta só o papel ou mantém a imagem inteira.</p>
+    <div id="panel-scan" class="panel on">
+      <ol class="steps">
+        <li>
+          <h3>1. Enviar</h3>
+          <div class="tools">
+            <label class="chip">Arquivos<input id="scan-files" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple hidden /></label>
+            <label class="chip">Câmera<input id="scan-cam" type="file" accept="image/*" capture="environment" hidden /></label>
+            <label class="chk"><input type="checkbox" id="scan-ocr" /> OCR</label>
+            <button class="chip ghost" id="scan-clear" type="button">Limpar</button>
+          </div>
+          <p id="scan-queue" class="note">Nenhum arquivo na fila.</p>
+        </li>
+        <li>
+          <h3>2. Escolher recorte e realce</h3>
           <select id="scan-mode" class="sr-only" aria-hidden="true">
             <option value="auto" selected>auto</option>
             <option value="none">none</option>
           </select>
+          <p class="lbl">Recorte</p>
           <div class="looks" id="mode-btns">
-            <button type="button" class="look on" data-mode="auto">Recortar automaticamente</button>
-            <button type="button" class="look" data-mode="none">Sem recorte (foto inteira)</button>
+            <button type="button" class="look on" data-mode="auto">Recortar folha</button>
+            <button type="button" class="look" data-mode="none">Foto inteira</button>
           </div>
-          <h3>2. Realce colorido</h3>
-          <p class="note">Teste as opções para ver qual deixa o texto e os carimbos mais legíveis. A página atualiza na hora.</p>
           <select id="scan-look" class="sr-only" aria-hidden="true">
             <option value="color_paper" selected>color_paper</option>
             <option value="color_ink">color_ink</option>
@@ -115,79 +51,53 @@
             <option value="bw">bw</option>
             <option value="bw_soft">bw_soft</option>
           </select>
+          <p class="lbl">Realce</p>
           <div class="looks" id="look-btns">
-            <button type="button" class="look on" data-look="color_paper">Colorido · papel branco</button>
-            <button type="button" class="look" data-look="color_ink">Colorido · tinta nítida</button>
-            <button type="button" class="look" data-look="color_vivid">Colorido · cores vivas</button>
-            <button type="button" class="look" data-look="color_cool">Colorido · menos amarelo</button>
-            <button type="button" class="look" data-look="original">Colorido · foto original</button>
-            <button type="button" class="look" data-look="bw">Preto e branco nítido</button>
-            <button type="button" class="look" data-look="bw_soft">Preto e branco suave</button>
+            <button type="button" class="look on" data-look="color_paper">Colorido papel branco</button>
+            <button type="button" class="look" data-look="color_ink">Colorido tinta</button>
+            <button type="button" class="look" data-look="color_vivid">Cores vivas</button>
+            <button type="button" class="look" data-look="color_cool">Menos amarelo</button>
+            <button type="button" class="look" data-look="original">Original</button>
+            <button type="button" class="look" data-look="bw">P&B nítido</button>
+            <button type="button" class="look" data-look="bw_soft">P&B suave</button>
           </div>
-        </div>
-        <div id="scan-empty" class="void">Solte fotos ou PDF aqui. Depois você troca recorte e realce sem enviar de novo.</div>
-        <div id="scan-grid" class="grid"></div>
+          <button class="chip green apply" id="scan-apply" type="button">Aplicar mudanças</button>
+        </li>
+        <li>
+          <h3>3. Visualizar</h3>
+          <div class="tools">
+            <button class="chip" id="scan-print" type="button">Imprimir</button>
+            <button class="chip green" id="scan-export" type="button">Exportar PDF</button>
+          </div>
+          <div id="scan-empty" class="void">O resultado aparece aqui depois de Aplicar.</div>
+          <div id="scan-grid" class="grid"></div>
+        </li>
+      </ol>
+    </div>
+
+    <div id="panel-merge" class="panel">
+      <div class="tools">
+        <label class="chip">Adicionar PDFs<input id="merge-files" type="file" accept="application/pdf" multiple hidden /></label>
+        <button class="chip ghost" id="merge-clear" type="button">Limpar</button>
+        <button class="chip" id="merge-print" type="button">Imprimir</button>
+        <button class="chip green" id="merge-export" type="button">Baixar unido</button>
       </div>
+      <div id="merge-empty" class="void">Adicione PDFs para juntar.</div>
+      <div id="merge-list" class="rows"></div>
+    </div>
 
-      <div id="panel-merge" class="panel">
-        <div class="tools">
-          <label class="chip">Adicionar PDFs<input id="merge-files" type="file" accept="application/pdf" multiple hidden /></label>
-          <button class="chip ghost" id="merge-clear" type="button">Limpar</button>
-          <button class="chip" id="merge-print" type="button">Imprimir</button>
-          <button class="chip green" id="merge-export" type="button">Baixar unido</button>
-        </div>
-        <div id="merge-empty" class="void">Dois ou mais PDFs, só nesta sessão.</div>
-        <div id="merge-list" class="rows"></div>
+    <div id="panel-edit" class="panel">
+      <div class="tools">
+        <label class="chip">Abrir PDF<input id="edit-file" type="file" accept="application/pdf" hidden /></label>
+        <button class="chip" id="edit-text" type="button">Inserir texto</button>
+        <button class="chip" id="edit-print" type="button">Imprimir</button>
+        <button class="chip ghost" id="edit-clear" type="button">Fechar</button>
+        <button class="chip green" id="edit-export" type="button">Salvar PDF</button>
       </div>
-
-      <div id="panel-edit" class="panel">
-        <div class="tools">
-          <label class="chip">Abrir PDF<input id="edit-file" type="file" accept="application/pdf" hidden /></label>
-          <button class="chip" id="edit-text" type="button">Inserir texto</button>
-          <button class="chip ghost" id="edit-clear" type="button">Fechar</button>
-          <button class="chip" id="edit-print" type="button">Imprimir</button>
-          <button class="chip green" id="edit-export" type="button">Salvar PDF</button>
-        </div>
-        <div id="edit-empty" class="void">Gire, reordene, apague páginas. Sem histórico.</div>
-        <div id="edit-grid" class="grid"></div>
-      </div>
-    </section>
-
-    <section id="casos" class="work">
-      <h2>Casos de uso</h2>
-      <p class="note">Exemplos de situação — não são depoimentos de clientes.</p>
-      <div class="cases">
-        <article class="case">
-          <img src="img-scanner.jpg" width="640" height="480" alt="Mesa com papel, caderno e celular para fotografar um comprovante" />
-          <div><h3>Comprovante</h3><p>Foto para PDF em um passo.</p><a href="digitalizar.html">Digitalizar</a></div>
-        </article>
-        <article class="case">
-          <img src="img-merge.jpg" width="640" height="480" alt="Vários documentos ao lado do notebook para unir em um PDF" />
-          <div><h3>Unir arquivos</h3><p>Vários PDFs, um download.</p><a href="juntar-pdf.html">Juntar</a></div>
-        </article>
-        <article class="case">
-          <img src="img-edit.jpg" width="640" height="480" alt="Folhas impressas com lápis e régua para ajustar páginas do PDF" />
-          <div><h3>Ajustar páginas</h3><p>Girar ou apagar folhas.</p><a href="editar-pdf.html">Editar</a></div>
-        </article>
-      </div>
-    </section>
-
-    <section id="faq" class="work faq">
-      <h2>Cinco perguntas</h2>
-      <details><summary>Os arquivos vão para a nuvem?</summary><p>Não para um servidor nosso. Tudo roda no navegador.</p></details>
-      <details><summary>Quais formatos?</summary><p>JPEG, PNG, WebP e PDF, até 25 MB cada.</p></details>
-      <details><summary>O OCR erra?</summary><p>Pode errar. Revise o texto extraído.</p></details>
-      <details><summary>E se o recorte falhar?</summary><p>Use só realce ou original.</p></details>
-      <details><summary>Como falar com o projeto?</summary><p>GitHub Issues, até 2 dias úteis no melhor esforço. <a href="faq.html">FAQ completa</a></p></details>
-    </section>
-
-    <section id="privacidade" class="privacy scene">
-      <h2>Sem conta. Sem rastro nosso.</h2>
-      <p>Fechar a aba zera a memória. Leia a <a href="privacidade.html">política de privacidade</a> e os <a href="termos.html">termos</a>.</p>
-      <p><a href="sobre.html">Sobre</a> · <a href="contato.html">Contato e mapa</a> · <a href="obrigado.html">Obrigado</a></p>
-    </section>
+      <div id="edit-empty" class="void">Abra um PDF para girar, reordenar ou apagar páginas.</div>
+      <div id="edit-grid" class="grid"></div>
+    </div>
   </main>
-  <a class="cta-bar" href="#ajuste">Recorte e realce</a>
 
   <div id="modal" class="modal hide">
     <div class="sheet">
@@ -205,7 +115,7 @@
     </div>
   </div>
   <div id="toast" class="toast hide" role="status"></div>
-  <div id="fx" class="fx-overlay hide" aria-live="polite">
+  <div id="fx" class="fx-overlay hide">
     <div class="fx-card">
       <div class="spinner"></div>
       <p id="fx-msg">Processando…</p>
