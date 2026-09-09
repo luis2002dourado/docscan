@@ -12,7 +12,7 @@
   <link rel="manifest" href="/docscan/manifest.json" />
   <link rel="apple-touch-icon" href="/docscan/ds-192.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="/docscan/ds-192.png" />
-  <link rel="stylesheet" href="styles.css?v=17" />
+  <link rel="stylesheet" href="styles.css?v=18" />
 </head>
 <body class="tool-only">
   <header class="top">
@@ -160,19 +160,9 @@
     </div>
   </div>
 
-  <script>
-    window.__opencvReady = new Promise((resolve) => {
-      window.Module = Object.assign(window.Module || {}, {
-        onRuntimeInitialized() {
-          resolve(window.cv);
-        },
-      });
-    });
-  </script>
-  <script async src="https://docs.opencv.org/4.10.0/opencv.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <script type="module" src="app.js?v=17"></script>
+  <script type="module" src="app.js?v=18"></script>
 </body>
 </html>

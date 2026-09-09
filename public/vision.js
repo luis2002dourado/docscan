@@ -356,6 +356,73 @@ function connectedEdgeComponents(bin, w, h) {
   return comps.slice(0, 10);
 }
 
+
+function morphClose(bin, w, h, r) {
+  const dil = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let on = 0;
+      for (let dy = -r; dy <= r && !on; dy++) {
+        const yy = y + dy;
+        if (yy < 0 || yy >= h) continue;
+        for (let dx = -r; dx <= r; dx++) {
+          const xx = x + dx;
+          if (xx < 0 || xx >= w) continue;
+          if (bin[yy * w + xx]) { on = 1; break; }
+        }
+      }
+      dil[y * w + x] = on;
+    }
+  }
+  const out = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let all = 1;
+      for (let dy = -r; dy <= r && all; dy++) {
+        const yy = y + dy;
+        if (yy < 0 || yy >= h) { all = 0; break; }
+        for (let dx = -r; dx <= r; dx++) {
+          const xx = x + dx;
+          if (xx < 0 || xx >= w || !dil[yy * w + xx]) { all = 0; break; }
+        }
+      }
+      out[y * w + x] = all;
+    }
+  }
+  return out;
+}
+function extremaQuadFromPts(pts) {
+  if (!pts || pts.length < 4) return null;
+  let tl = pts[0], tr = pts[0], br = pts[0], bl = pts[0];
+  let minS = Infinity, maxS = -Infinity, minD = Infinity, maxD = -Infinity;
+  for (const p of pts) {
+    const s = p.x + p.y, d = p.x - p.y;
+    if (s < minS) { minS = s; tl = p; }
+    if (s > maxS) { maxS = s; br = p; }
+    if (d > maxD) { maxD = d; tr = p; }
+    if (d < minD) { minD = d; bl = p; }
+  }
+  const q = orderQuad([tl, tr, br, bl]);
+  return new Set(q).size === 4 ? q : null;
+}
+function blobExtremaQuad(gray, w, h) {
+  let border = 0, bn = 0;
+  for (let x = 0; x < w; x++) { border += gray[x] + gray[(h - 1) * w + x]; bn += 2; }
+  for (let y = 0; y < h; y++) { border += gray[y * w] + gray[y * w + w - 1]; bn += 2; }
+  const desk = border / bn;
+  const th = otsuThreshold(gray);
+  const paperBright = desk < th;
+  const cut = (desk + th) / 2;
+  const bin = new Uint8Array(w * h);
+  for (let i = 0; i < gray.length; i++) bin[i] = paperBright ? (gray[i] >= cut ? 1 : 0) : (gray[i] <= cut ? 1 : 0);
+  const closed = morphClose(bin, w, h, 2);
+  const comps = connectedEdgeComponents(closed, w, h);
+  if (!comps.length) return null;
+  const q = extremaQuadFromPts(convexHull(comps[0]));
+  if (!q || !isValidQuad(q, w, h) || hugsFrame(q, w, h)) return null;
+  return q;
+}
+
 export function detectDocumentQuad(imageData, w, h) {
   const gray0 = new Float32Array(w * h);
   const d = imageData.data;
@@ -411,6 +478,9 @@ export function detectDocumentQuad(imageData, w, h) {
       dil[y * w + x] = on;
     }
   }
+
+  const blobQ = blobExtremaQuad(gray0, w, h);
+  if (blobQ) return blobQ;
 
   const scoreQ = (q) => {
     if (!q || q.length !== 4) return -1;
@@ -878,45 +948,32 @@ export async function processPhoto(img, mode, look) {
   let work = src;
   const crop = mode === "auto" || mode === "" || mode == null;
   if (crop && src.width > 8 && src.height > 8) {
-    let done = false;
-    try {
-      const cv = await ensureCv();
-      const warped = scanWithOpenCv(cv, src);
-      if (warped && warped.width > 16) {
-        work = warped;
-        done = true;
+    const tryDetect = (longSide) => {
+      try {
+        const small = document.createElement("canvas");
+        const maxSide = Math.max(src.width, src.height, 1);
+        small.width = Math.max(12, Math.round((src.width * longSide) / maxSide));
+        small.height = Math.max(12, Math.round((src.height * longSide) / maxSide));
+        const ctx = ctx2d(small);
+        ctx.drawImage(src, 0, 0, small.width, small.height);
+        const id = ctx.getImageData(0, 0, small.width, small.height);
+        const q = detectDocumentQuad(id, small.width, small.height);
+        if (!q) return null;
+        const sx = src.width / small.width;
+        const sy = src.height / small.height;
+        return orderQuad(q.map((p) => ({ x: p.x * sx, y: p.y * sy })));
+      } catch {
+        return null;
       }
-    } catch (err) {
-      console.warn("OpenCV scan", err);
-    }
-    if (!done) {
-      const tryDetect = (longSide) => {
-        try {
-          const small = document.createElement("canvas");
-          small.width = Math.max(12, Math.round((src.width * longSide) / Math.max(src.width, src.height, 1)));
-          small.height = Math.max(12, Math.round((src.height * longSide) / Math.max(src.width, src.height, 1)));
-          const ctx = ctx2d(small);
-          ctx.drawImage(src, 0, 0, small.width, small.height);
-          const id = ctx.getImageData(0, 0, small.width, small.height);
-          const q = detectDocumentQuad(id, small.width, small.height);
-          if (!q) return null;
-          const sx = src.width / small.width;
-          const sy = src.height / small.height;
-          return q.map((p) => ({ x: p.x * sx, y: p.y * sy }));
-        } catch {
-          return null;
-        }
-      };
-      const found = tryDetect(640) || tryDetect(420);
-      if (found) {
-        const quad = orderQuad(found);
-        const w = Math.round(Math.max(dist(quad[0], quad[1]), dist(quad[3], quad[2])));
-        const h = Math.round(Math.max(dist(quad[0], quad[3]), dist(quad[1], quad[2])));
-        try {
-          work = warpToCanvas(src, quad, clamp(w, 400, 1400), clamp(h, 400, 1800));
-        } catch {
-          work = cropDraw(src, quad);
-        }
+    };
+    const found = tryDetect(720) || tryDetect(480);
+    if (found) {
+      const w = Math.round(Math.max(dist(found[0], found[1]), dist(found[3], found[2])));
+      const h = Math.round(Math.max(dist(found[0], found[3]), dist(found[1], found[2])));
+      try {
+        work = warpToCanvas(src, found, clamp(w, 400, 1400), clamp(h, 400, 1800));
+      } catch {
+        work = cropDraw(src, found);
       }
     }
   }
