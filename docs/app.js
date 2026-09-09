@@ -56,7 +56,13 @@ const on = (id, ev, fn) => {
   return el;
 };
 const toast = (m) => {
-  const t = $("toast");
+  let t = $("toast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "toast";
+    t.className = "toast";
+    document.body.appendChild(t);
+  }
   t.textContent = m;
   t.classList.remove("hide");
   t.style.animation = "none";
@@ -140,7 +146,12 @@ function loadImage(file) {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = reject;
-    img.src = trackUrl(URL.createObjectURL(file));
+    const reader = new FileReader();
+    reader.onload = () => {
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
   });
 }
 

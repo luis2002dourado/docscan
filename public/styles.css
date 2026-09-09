@@ -204,7 +204,15 @@ body {
   transition: border-color 0.2s, background 0.2s, transform 0.2s;
 }
 .void.drag { background: #02c39a22; border-color: var(--mint); transform: scale(1.02); }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr)); gap: 14px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; }
+.preview-grid {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+  min-height: 40px;
+}
+.preview-grid .card { width: 120px; flex: 0 0 120px; }
 .card {
   background: var(--paper); border-radius: 14px; overflow: hidden; border: 1px solid var(--line);
   box-shadow: var(--shadow); transform-style: preserve-3d;

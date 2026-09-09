@@ -56,7 +56,13 @@ const on = (id, ev, fn) => {
   return el;
 };
 const toast = (m) => {
-  const t = $("toast");
+  let t = $("toast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "toast";
+    t.className = "toast";
+    document.body.appendChild(t);
+  }
   t.textContent = m;
   t.classList.remove("hide");
   t.style.animation = "none";
@@ -140,7 +146,12 @@ function loadImage(file) {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = reject;
-    img.src = trackUrl(URL.createObjectURL(file));
+    const reader = new FileReader();
+    reader.onload = () => {
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
   });
 }
 
@@ -292,6 +303,14 @@ document.getElementById("look-btns").addEventListener("click", (e) => {
   document.querySelectorAll("#look-btns .look").forEach((b) => b.classList.toggle("on", b === btn));
 });
 on("scan-apply", "click", () => reprocessScan());
+document.addEventListener("click", (e) => {
+  const t = e.target;
+  if (!t || !t.dataset || t.dataset.qrm === undefined) return;
+  if (!t.closest("#scan-preview")) return;
+  scanPages.splice(Number(t.dataset.qrm), 1);
+  updateQueue();
+  renderScan();
+});
 
 function renderScan() {
   updateQueue();
