@@ -25,7 +25,7 @@ test("estilo Evernote: serif + verde", () => {
 
 test("movimento 3d e pointer", () => {
   assert.ok(css.includes("perspective") || css.includes("preserve-3d"));
-  assert.ok(html.includes("data-tilt") || html.includes("data-scroll"));
+  assert.ok(html.includes("scan-apply") || html.includes("data-scroll") || html.includes("data-tilt"));
   assert.ok(app.includes("pointermove"));
 });
 

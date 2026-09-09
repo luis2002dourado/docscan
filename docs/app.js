@@ -74,32 +74,6 @@ window.addEventListener("pagehide", () => {
   urls.forEach((u) => URL.revokeObjectURL(u));
 });
 
-/* motion */
-const cursor = $("cursor");
-window.addEventListener(
-  "pointermove",
-  (e) => {
-    if (!cursor) return;
-    cursor.style.left = e.clientX + "px";
-    cursor.style.top = e.clientY + "px";
-    document.querySelectorAll("[data-tilt]").forEach((el, i) => {
-      const r = el.getBoundingClientRect();
-      const dx = (e.clientX - (r.left + r.width / 2)) / 40;
-      const dy = (e.clientY - (r.top + r.height / 2)) / 40;
-      el.style.transform = `rotateY(${dx + (i - 1) * 8}deg) rotateX(${8 - dy}deg) translateZ(${12 * i}px)`;
-    });
-  },
-  { passive: true }
-);
-
-const io = new IntersectionObserver(
-  (entries) => {
-    entries.forEach((en) => en.target.classList.toggle("in", en.isIntersecting));
-  },
-  { threshold: 0.35 }
-);
-document.querySelectorAll("[data-scroll]").forEach((el) => io.observe(el));
-
 document.querySelectorAll(".tab").forEach((btn) => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".tab").forEach((b) => b.classList.remove("on"));
