@@ -1,0 +1,439 @@
+import {
+  allowedFile,
+  MAX_BYTES,
+  sanitizeFilename,
+  escapeText,
+  processPhoto,
+} from "./vision.js";
+
+const $ = (id) => document.getElementById(id);
+const toast = (m) => {
+  const t = $("toast");
+  t.textContent = m;
+  t.classList.remove("hide");
+  t.style.animation = "none";
+  void t.offsetWidth;
+  t.style.animation = "";
+  setTimeout(() => t.classList.add("hide"), 2400);
+};
+
+function fxShow(msg) {
+  $("fx-msg").textContent = msg;
+  $("fx").classList.remove("hide");
+}
+function fxHide() {
+  $("fx").classList.add("hide");
+}
+function burst(x, y) {
+  const b = document.createElement("div");
+  b.className = "burst";
+  b.style.left = x + "px";
+  b.style.top = y + "px";
+  document.body.appendChild(b);
+  setTimeout(() => b.remove(), 700);
+}
+document.addEventListener("click", (e) => {
+  if (e.target.closest(".chip, .tab, .go, .meta button")) burst(e.clientX, e.clientY);
+});
+
+try {
+  localStorage.clear();
+  sessionStorage.clear();
+} catch {
+  /* ignore */
+}
+
+const urls = new Set();
+function trackUrl(u) {
+  urls.add(u);
+  return u;
+}
+function wipeSession() {
+  scanPages.length = 0;
+  mergeItems.length = 0;
+  editState = null;
+  urls.forEach((u) => URL.revokeObjectURL(u));
+  urls.clear();
+  $("scan-grid").innerHTML = "";
+  $("merge-list").innerHTML = "";
+  $("edit-grid").innerHTML = "";
+  $("scan-empty").classList.remove("hide");
+  $("merge-empty").classList.remove("hide");
+  $("edit-empty").classList.remove("hide");
+}
+window.addEventListener("pagehide", wipeSession);
+window.addEventListener("beforeunload", wipeSession);
+
+/* motion */
+const cursor = $("cursor");
+window.addEventListener(
+  "pointermove",
+  (e) => {
+    cursor.style.left = e.clientX + "px";
+    cursor.style.top = e.clientY + "px";
+    document.querySelectorAll("[data-tilt]").forEach((el, i) => {
+      const r = el.getBoundingClientRect();
+      const dx = (e.clientX - (r.left + r.width / 2)) / 40;
+      const dy = (e.clientY - (r.top + r.height / 2)) / 40;
+      el.style.transform = `rotateY(${dx + (i - 1) * 8}deg) rotateX(${8 - dy}deg) translateZ(${12 * i}px)`;
+    });
+  },
+  { passive: true }
+);
+
+const io = new IntersectionObserver(
+  (entries) => {
+    entries.forEach((en) => en.target.classList.toggle("in", en.isIntersecting));
+  },
+  { threshold: 0.35 }
+);
+document.querySelectorAll("[data-scroll]").forEach((el) => io.observe(el));
+
+document.querySelectorAll(".tab").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach((b) => b.classList.remove("on"));
+    document.querySelectorAll(".panel").forEach((p) => p.classList.remove("on"));
+    btn.classList.add("on");
+    $("panel-" + btn.dataset.tab).classList.add("on");
+  });
+});
+
+function readFile(file, kind) {
+  if (!allowedFile(file.name, file.type, kind)) {
+    toast("Tipo de arquivo não permitido.");
+    return null;
+  }
+  if (file.size > MAX_BYTES) {
+    toast("Arquivo maior que 25 MB.");
+    return null;
+  }
+  return file;
+}
+
+/* SCAN */
+const scanPages = [];
+
+function loadImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = trackUrl(URL.createObjectURL(file));
+  });
+}
+
+async function addImages(files) {
+  const mode = $("scan-mode").value;
+  const doOcr = $("scan-ocr").checked;
+  const list = [...files];
+  if (!list.length) return;
+  fxShow("Digitalizando e recortando…");
+  for (const raw of list) {
+    const file = readFile(raw, "image");
+    if (!file) continue;
+    toast("Processando " + file.name + "…");
+    const img = await loadImage(file);
+    const canvas = await processPhoto(img, mode);
+    let text = "";
+    if (doOcr && window.Tesseract) {
+      fxShow("Lendo texto (OCR)…");
+      try {
+        const res = await Tesseract.recognize(canvas, "por+eng", { logger: () => {} });
+        text = (res.data && res.data.text) || "";
+      } catch {
+        text = "";
+      }
+    }
+    scanPages.push({ canvas, name: sanitizeFilename(file.name), text });
+    renderScan();
+  }
+  fxHide();
+  toast("Páginas prontas.");
+}
+
+function renderScan() {
+  $("scan-empty").classList.toggle("hide", scanPages.length > 0);
+  const grid = $("scan-grid");
+  grid.innerHTML = "";
+  scanPages.forEach((p, i) => {
+    const card = document.createElement("article");
+    card.className = "card";
+    card.innerHTML = `<div class="thumb"></div>
+      <div class="meta"><span>Pág. ${i + 1}</span>
+        <span>
+          <button type="button" data-up="${i}">↑</button>
+          <button type="button" data-dn="${i}">↓</button>
+          <button type="button" data-rm="${i}">✕</button>
+        </span>
+      </div>
+      ${p.text ? `<div class="ocr">${escapeText(p.text)}</div>` : ""}`;
+    card.style.animationDelay = i * 70 + "ms";
+    card.querySelector(".thumb").appendChild(p.canvas);
+    grid.appendChild(card);
+  });
+}
+
+$("scan-files").addEventListener("change", (e) => {
+  addImages([...e.target.files]);
+  e.target.value = "";
+});
+$("scan-cam").addEventListener("change", (e) => {
+  addImages([...e.target.files]);
+  e.target.value = "";
+});
+$("scan-grid").addEventListener("click", (e) => {
+  const up = e.target.dataset.up;
+  const dn = e.target.dataset.dn;
+  const rm = e.target.dataset.rm;
+  if (up && Number(up) > 0) {
+    const i = Number(up);
+    [scanPages[i - 1], scanPages[i]] = [scanPages[i], scanPages[i - 1]];
+  }
+  if (dn && Number(dn) < scanPages.length - 1) {
+    const i = Number(dn);
+    [scanPages[i + 1], scanPages[i]] = [scanPages[i], scanPages[i + 1]];
+  }
+  if (rm) scanPages.splice(Number(rm), 1);
+  if (up || dn || rm) renderScan();
+});
+$("scan-clear").addEventListener("click", () => {
+  scanPages.length = 0;
+  renderScan();
+});
+$("scan-export").addEventListener("click", async () => {
+  if (!scanPages.length) return toast("Adicione páginas.");
+  fxShow("Gerando PDF…");
+  try {
+    const { PDFDocument } = PDFLib;
+    const pdf = await PDFDocument.create();
+    for (const p of scanPages) {
+      const blob = await new Promise((r) => p.canvas.toBlob(r, "image/jpeg", 0.88));
+      const img = await pdf.embedJpg(await blob.arrayBuffer());
+      const page = pdf.addPage([img.width, img.height]);
+      page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+    }
+    await downloadPdf(pdf, "documento.pdf");
+  } finally {
+    fxHide();
+  }
+});
+
+const drop = $("panel-scan");
+drop.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  $("scan-empty").classList.add("drag");
+});
+drop.addEventListener("dragleave", () => $("scan-empty").classList.remove("drag"));
+drop.addEventListener("drop", (e) => {
+  e.preventDefault();
+  $("scan-empty").classList.remove("drag");
+  addImages([...e.dataTransfer.files]);
+});
+
+/* MERGE */
+const mergeItems = [];
+$("merge-files").addEventListener("change", async (e) => {
+  fxShow("Lendo PDFs…");
+  for (const raw of e.target.files) {
+    const file = readFile(raw, "pdf");
+    if (!file) continue;
+    mergeItems.push({ name: sanitizeFilename(file.name), bytes: new Uint8Array(await file.arrayBuffer()) });
+  }
+  e.target.value = "";
+  renderMerge();
+  fxHide();
+});
+function renderMerge() {
+  $("merge-empty").classList.toggle("hide", mergeItems.length > 0);
+  $("merge-list").innerHTML = mergeItems
+    .map(
+      (it, i) =>
+        `<div class="row"><strong>${escapeText(it.name)}</strong>
+        <span>
+          <button type="button" data-up="${i}">↑</button>
+          <button type="button" data-dn="${i}">↓</button>
+          <button type="button" data-rm="${i}">✕</button>
+        </span></div>`
+    )
+    .join("");
+}
+$("merge-list").addEventListener("click", (e) => {
+  const up = e.target.dataset.up,
+    dn = e.target.dataset.dn,
+    rm = e.target.dataset.rm;
+  if (up && Number(up) > 0) {
+    const i = Number(up);
+    [mergeItems[i - 1], mergeItems[i]] = [mergeItems[i], mergeItems[i - 1]];
+  }
+  if (dn && Number(dn) < mergeItems.length - 1) {
+    const i = Number(dn);
+    [mergeItems[i + 1], mergeItems[i]] = [mergeItems[i], mergeItems[i + 1]];
+  }
+  if (rm) mergeItems.splice(Number(rm), 1);
+  if (up || dn || rm) renderMerge();
+});
+$("merge-clear").addEventListener("click", () => {
+  mergeItems.length = 0;
+  renderMerge();
+});
+$("merge-export").addEventListener("click", async () => {
+  if (!mergeItems.length) return toast("Adicione PDFs.");
+  fxShow("Unindo PDFs…");
+  try {
+    const { PDFDocument } = PDFLib;
+    const out = await PDFDocument.create();
+    for (const it of mergeItems) {
+      const src = await PDFDocument.load(it.bytes);
+      const pages = await out.copyPages(src, src.getPageIndices());
+      pages.forEach((p) => out.addPage(p));
+    }
+    await downloadPdf(out, "unido.pdf");
+  } finally {
+    fxHide();
+  }
+});
+
+/* EDIT */
+let editState = null;
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+$("edit-file").addEventListener("change", async (e) => {
+  const file = readFile(e.target.files[0], "pdf");
+  e.target.value = "";
+  if (!file) return;
+  fxShow("Abrindo páginas…");
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const pdf = await PDFLib.PDFDocument.load(bytes);
+  editState = {
+    bytes,
+    rotations: pdf.getPages().map((p) => p.getRotation().angle || 0),
+    order: pdf.getPageIndices(),
+    deleted: new Set(),
+    texts: [],
+  };
+  await renderEdit();
+  fxHide();
+});
+
+async function renderEdit() {
+  if (!editState) {
+    $("edit-empty").classList.remove("hide");
+    $("edit-grid").innerHTML = "";
+    return;
+  }
+  $("edit-empty").classList.add("hide");
+  const loading = await pdfjsLib.getDocument({ data: editState.bytes.slice(0) }).promise;
+  const grid = $("edit-grid");
+  grid.innerHTML = "";
+  for (const pageIndex of editState.order) {
+    if (editState.deleted.has(pageIndex)) continue;
+    const page = await loading.getPage(pageIndex + 1);
+    const viewport = page.getViewport({ scale: 0.32, rotation: editState.rotations[pageIndex] });
+    const canvas = document.createElement("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+    const card = document.createElement("article");
+    card.className = "card";
+    card.innerHTML = `<div class="thumb"></div>
+      <div class="meta"><span>Pág. ${pageIndex + 1}</span>
+        <span>
+          <button type="button" data-rot="${pageIndex}">⟳</button>
+          <button type="button" data-up="${pageIndex}">↑</button>
+          <button type="button" data-dn="${pageIndex}">↓</button>
+          <button type="button" data-rm="${pageIndex}">✕</button>
+        </span></div>`;
+    card.querySelector(".thumb").appendChild(canvas);
+    grid.appendChild(card);
+  }
+}
+
+$("edit-grid").addEventListener("click", async (e) => {
+  if (!editState) return;
+  const rot = e.target.dataset.rot,
+    up = e.target.dataset.up,
+    dn = e.target.dataset.dn,
+    rm = e.target.dataset.rm;
+  if (rot) editState.rotations[Number(rot)] = (editState.rotations[Number(rot)] + 90) % 360;
+  if (up) {
+    const i = editState.order.indexOf(Number(up));
+    if (i > 0) [editState.order[i - 1], editState.order[i]] = [editState.order[i], editState.order[i - 1]];
+  }
+  if (dn) {
+    const i = editState.order.indexOf(Number(dn));
+    if (i < editState.order.length - 1)
+      [editState.order[i + 1], editState.order[i]] = [editState.order[i], editState.order[i + 1]];
+  }
+  if (rm) editState.deleted.add(Number(rm));
+  if (rot || up || dn || rm) await renderEdit();
+});
+$("edit-clear").addEventListener("click", () => {
+  editState = null;
+  renderEdit();
+});
+$("edit-text").addEventListener("click", () => {
+  if (!editState) return toast("Abra um PDF.");
+  const sel = $("text-page");
+  sel.innerHTML = "";
+  editState.order
+    .filter((i) => !editState.deleted.has(i))
+    .forEach((idx, n) => {
+      const o = document.createElement("option");
+      o.value = idx;
+      o.textContent = "Página " + (n + 1);
+      sel.appendChild(o);
+    });
+  $("modal").classList.remove("hide");
+});
+$("text-cancel").addEventListener("click", () => $("modal").classList.add("hide"));
+$("text-ok").addEventListener("click", () => {
+  const text = $("text-content").value.slice(0, 200);
+  editState.texts.push({
+    page: Number($("text-page").value),
+    text,
+    x: Number($("text-x").value),
+    y: Number($("text-y").value),
+  });
+  $("modal").classList.add("hide");
+  toast("Texto na fila de salvamento.");
+});
+$("edit-export").addEventListener("click", async () => {
+  if (!editState) return toast("Abra um PDF.");
+  fxShow("Salvando PDF…");
+  const { PDFDocument, StandardFonts, rgb, degrees } = PDFLib;
+  const src = await PDFDocument.load(editState.bytes);
+  const out = await PDFDocument.create();
+  const font = await out.embedFont(StandardFonts.Helvetica);
+  const keep = editState.order.filter((i) => !editState.deleted.has(i));
+  const copied = await out.copyPages(src, keep);
+  copied.forEach((page, n) => {
+    const orig = keep[n];
+    page.setRotation(degrees(editState.rotations[orig] || 0));
+    const { width, height } = page.getSize();
+    editState.texts
+      .filter((t) => t.page === orig && t.text)
+      .forEach((t) => {
+        page.drawText(t.text, {
+          x: (t.x / 100) * width,
+          y: height - (t.y / 100) * height - 14,
+          size: 14,
+          font,
+          color: rgb(0.1, 0.1, 0.1),
+        });
+      });
+    out.addPage(page);
+  });
+  await downloadPdf(out, "editado.pdf");
+  fxHide();
+});
+
+async function downloadPdf(pdf, name) {
+  const bytes = await pdf.save();
+  const blob = new Blob([bytes], { type: "application/pdf" });
+  const a = document.createElement("a");
+  a.href = trackUrl(URL.createObjectURL(blob));
+  a.download = sanitizeFilename(name);
+  a.click();
+  toast("Download iniciado. Nada ficou no servidor.");
+}

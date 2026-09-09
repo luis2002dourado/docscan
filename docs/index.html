@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="referrer" content="no-referrer" />
+  <title>DocScan — Digitalize como no papel, sem guardar nada</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="cursor" aria-hidden="true"></div>
+  <header class="top">
+    <a class="mark" href="#topo">
+      <span class="leaf"></span> DocScan
+    </a>
+    <nav>
+      <a href="#como">Como funciona</a>
+      <a href="#app">Ferramenta</a>
+      <a href="#privacidade">Privacidade</a>
+    </nav>
+    <a class="go" href="#app">Começar</a>
+  </header>
+
+  <main id="topo">
+    <section class="hero scene" data-depth="0.12">
+      <div class="hero-copy">
+        <p class="kicker">Sessão efêmera · zero armazenamento</p>
+        <h1>Suas notas, seus documentos.<br />Nada fica no servidor.</h1>
+        <p class="lead">
+          Recorte automático da folha, realce de scanner, OCR e PDF —
+          no navegador, no estilo de um caderno calmo.
+        </p>
+        <a class="go large" href="#app">Abrir a mesa de trabalho</a>
+      </div>
+      <div class="stack3d" id="hero-stack">
+        <article class="paper p1" data-tilt>Contrato</article>
+        <article class="paper p2" data-tilt>Recibo</article>
+        <article class="paper p3" data-tilt>Anotação</article>
+      </div>
+    </section>
+
+    <section id="como" class="bands">
+      <article class="band" data-scroll>
+        <h2>1. Enquadre</h2>
+        <p>A câmera ou a foto vira um documento. Detectamos as quatro pontas da folha e corrigimos a perspectiva.</p>
+      </article>
+      <article class="band" data-scroll>
+        <h2>2. Realce</h2>
+        <p>Filtros de scanner: branco de papel, tinta nítida, preto e branco ou original.</p>
+      </article>
+      <article class="band" data-scroll>
+        <h2>3. Leia</h2>
+        <p>OCR opcional extrai o texto na hora. Você copia e o original some ao fechar a aba.</p>
+      </article>
+    </section>
+
+    <section id="app" class="work">
+      <div class="work-head">
+        <h2>Mesa de trabalho</h2>
+        <p>Arquivos só existem nesta sessão. Recarregar a página apaga tudo.</p>
+      </div>
+      <div class="tabs" role="tablist">
+        <button class="tab on" data-tab="scan" type="button">Digitalizar</button>
+        <button class="tab" data-tab="merge" type="button">Juntar PDFs</button>
+        <button class="tab" data-tab="edit" type="button">Editar PDF</button>
+      </div>
+
+      <div id="panel-scan" class="panel on">
+        <div class="tools">
+          <label class="chip">Arquivos<input id="scan-files" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden /></label>
+          <label class="chip">Câmera<input id="scan-cam" type="file" accept="image/*" capture="environment" hidden /></label>
+          <label>Modo
+            <select id="scan-mode">
+              <option value="auto" selected>Recorte automático + realce</option>
+              <option value="enhance">Só realce</option>
+              <option value="original">Original</option>
+              <option value="bw">Preto e branco</option>
+            </select>
+          </label>
+          <label class="chk"><input type="checkbox" id="scan-ocr" /> OCR (pt+en)</label>
+          <button class="chip ghost" id="scan-clear" type="button">Limpar sessão</button>
+          <button class="chip green" id="scan-export" type="button">Exportar PDF</button>
+        </div>
+        <div id="scan-empty" class="void">Solte imagens aqui ou use os botões. Nada é enviado.</div>
+        <div id="scan-grid" class="grid"></div>
+      </div>
+
+      <div id="panel-merge" class="panel">
+        <div class="tools">
+          <label class="chip">Adicionar PDFs<input id="merge-files" type="file" accept="application/pdf" multiple hidden /></label>
+          <button class="chip ghost" id="merge-clear" type="button">Limpar</button>
+          <button class="chip green" id="merge-export" type="button">Baixar unido</button>
+        </div>
+        <div id="merge-empty" class="void">Dois ou mais PDFs, só nesta sessão.</div>
+        <div id="merge-list" class="rows"></div>
+      </div>
+
+      <div id="panel-edit" class="panel">
+        <div class="tools">
+          <label class="chip">Abrir PDF<input id="edit-file" type="file" accept="application/pdf" hidden /></label>
+          <button class="chip" id="edit-text" type="button">Inserir texto</button>
+          <button class="chip ghost" id="edit-clear" type="button">Fechar</button>
+          <button class="chip green" id="edit-export" type="button">Salvar PDF</button>
+        </div>
+        <div id="edit-empty" class="void">Gire, reordene, apague páginas. Sem histórico.</div>
+        <div id="edit-grid" class="grid"></div>
+      </div>
+    </section>
+
+    <section id="privacidade" class="privacy scene">
+      <h2>Sem nuvem. Sem conta. Sem rastro.</h2>
+      <p>Não há banco de dados. POST é recusado. Cache desligado. Fechar a aba zera a memória.</p>
+    </section>
+  </main>
+
+  <div id="modal" class="modal hide">
+    <div class="sheet">
+      <h3>Texto na página</h3>
+      <label>Página <select id="text-page"></select></label>
+      <label>Conteúdo <input id="text-content" maxlength="200" /></label>
+      <div class="duo">
+        <label>X % <input id="text-x" type="number" value="10" min="0" max="100" /></label>
+        <label>Y % <input id="text-y" type="number" value="10" min="0" max="100" /></label>
+      </div>
+      <div class="actions">
+        <button type="button" id="text-cancel" class="chip ghost">Cancelar</button>
+        <button type="button" id="text-ok" class="chip green">Aplicar</button>
+      </div>
+    </div>
+  </div>
+  <div id="toast" class="toast hide" role="status"></div>
+  <div id="fx" class="fx-overlay hide" aria-live="polite">
+    <div class="fx-card">
+      <div class="spinner"></div>
+      <p id="fx-msg">Processando…</p>
+      <div class="bar"><i></i></div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
