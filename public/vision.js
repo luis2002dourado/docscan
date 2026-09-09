@@ -761,7 +761,8 @@ function bestQuadInContours(cv, contours, imgW, imgH) {
     for (const eps of [0.02, 0.03, 0.015, 0.04, 0.05]) {
       const approx = new cv.Mat();
       cv.approxPolyDP(cnt, approx, eps * peri, true);
-      if (approx.rows === 4 && cv.isContourConvex(approx)) {
+      const convex = typeof cv.isContourConvex === "function" ? cv.isContourConvex(approx) : true;
+      if (approx.rows === 4 && convex) {
         const pts = orderQuad(ptsFromApprox(approx));
         if (isValidQuad(pts, imgW, imgH) && area > bestArea) {
           bestArea = area;
