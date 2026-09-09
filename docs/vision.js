@@ -19,13 +19,30 @@ export function quadArea(q) {
 }
 export function isValidQuad(q, w, h) {
   if (!q || q.length !== 4) return false;
+  if (q.some((p) => !p || !Number.isFinite(p.x) || !Number.isFinite(p.y))) return false;
   const a = quadArea(q);
-  if (a < w * h * 0.08) return false;
-  if (a > w * h * 0.93) return false;
-  const [tl, tr, br, bl] = q;
-  if (dist(tl, tr) < w * 0.12 || dist(bl, br) < w * 0.12) return false;
-  if (dist(tl, bl) < h * 0.12 || dist(tr, br) < h * 0.12) return false;
+  if (a < w * h * 0.06) return false;
+  if (a > w * h * 0.995) return false;
+  const [tl, tr, br, bl] = orderQuad(q);
+  if (dist(tl, tr) < w * 0.1 || dist(bl, br) < w * 0.1) return false;
+  if (dist(tl, bl) < h * 0.1 || dist(tr, br) < h * 0.1) return false;
   return true;
+}
+
+function rectScore(q) {
+  const [tl, tr, br, bl] = orderQuad(q);
+  const w1 = dist(tl, tr);
+  const w2 = dist(bl, br);
+  const h1 = dist(tl, bl);
+  const h2 = dist(tr, br);
+  const wr = Math.min(w1, w2) / Math.max(1, Math.max(w1, w2));
+  const hr = Math.min(h1, h2) / Math.max(1, Math.max(h1, h2));
+  return wr * hr;
+}
+
+function hugsFrame(q, w, h) {
+  const m = 3;
+  return q.every((p) => p.x <= m || p.x >= w - m || p.y <= m || p.y >= h - m);
 }
 export function solveHomography(src, dst) {
   const A = [];
@@ -109,51 +126,47 @@ export function detectDocumentQuad(imageData, w, h) {
   }
   let max = 0;
   for (let i = 0; i < mag.length; i++) if (mag[i] > max) max = mag[i];
-  const mx = Math.max(4, Math.round(w * 0.04));
-  const my = Math.max(4, Math.round(h * 0.04));
 
-  const fromEdges = (thrMul, inset) => {
+  const pick = (pts) => {
+    if (!pts || pts.length < 18) return null;
+    const q = orderQuad(approxQuad(convexHull(pts), w, h));
+    if (!isValidQuad(q, w, h) || hugsFrame(q, w, h)) return null;
+    return q;
+  };
+
+  const fromEdges = (thrMul, insetFrac) => {
     const thr = max * thrMul;
+    if (thr <= 0) return null;
     const pts = [];
-    const step = 2;
-    const x0 = inset ? mx : 2;
-    const y0 = inset ? my : 2;
-    const x1 = inset ? w - mx : w - 2;
-    const y1 = inset ? h - my : h - 2;
-    for (let y = y0; y < y1; y += step) {
-      for (let x = x0; x < x1; x += step) {
+    const pad = Math.max(2, Math.round(Math.min(w, h) * insetFrac));
+    for (let y = pad; y < h - pad; y += 2) {
+      for (let x = pad; x < w - pad; x += 2) {
         if (mag[y * w + x] > thr) pts.push({ x, y });
       }
     }
-    if (pts.length < 24) return null;
-    const q = orderQuad(approxQuad(convexHull(pts)));
-    return isValidQuad(q, w, h) ? q : null;
+    return pick(pts);
   };
 
-  let q = fromEdges(0.22, true) || fromEdges(0.16, true) || fromEdges(0.22, false);
+  let q =
+    fromEdges(0.2, 0.03) ||
+    fromEdges(0.14, 0.02) ||
+    fromEdges(0.1, 0.015) ||
+    fromEdges(0.18, 0);
   if (q) return q;
 
-  let border = 0;
-  let bn = 0;
-  for (let x = 0; x < w; x += 2) {
-    border += gray[x] + gray[(h - 1) * w + x];
-    bn += 2;
-  }
-  for (let y = 0; y < h; y += 2) {
-    border += gray[y * w] + gray[y * w + w - 1];
-    bn += 2;
-  }
-  const desk = border / Math.max(1, bn);
-  const paperThr = Math.min(210, Math.max(desk + 22, 118));
+  const proj = projectionQuad(gray, mag, w, h);
+  if (proj) return proj;
+
+  const otsuT = otsuThreshold(gray);
   const paper = [];
-  for (let y = my; y < h - my; y += 2) {
-    for (let x = mx; x < w - mx; x += 2) {
-      if (gray[y * w + x] >= paperThr) paper.push({ x, y });
+  for (let y = 1; y < h - 1; y += 2) {
+    for (let x = 1; x < w - 1; x += 2) {
+      if (gray[y * w + x] >= otsuT) paper.push({ x, y });
     }
   }
-  if (paper.length > 40) {
-    const pq = orderQuad(approxQuad(convexHull(paper)));
-    if (isValidQuad(pq, w, h)) return pq;
+  q = pick(paper);
+  if (q) return q;
+  if (paper.length > 30) {
     let minX = w,
       minY = h,
       maxX = 0,
@@ -170,9 +183,92 @@ export function detectDocumentQuad(imageData, w, h) {
       { x: maxX, y: maxY },
       { x: minX, y: maxY },
     ]);
-    if (isValidQuad(box, w, h)) return box;
+    if (isValidQuad(box, w, h) && !hugsFrame(box, w, h)) return box;
   }
   return null;
+}
+
+function otsuThreshold(gray) {
+  const hist = new Array(256).fill(0);
+  for (let i = 0; i < gray.length; i++) hist[Math.max(0, Math.min(255, gray[i] | 0))]++;
+  const total = gray.length;
+  let sum = 0;
+  for (let i = 0; i < 256; i++) sum += i * hist[i];
+  let sumB = 0;
+  let wB = 0;
+  let best = 0;
+  let t = 128;
+  for (let i = 0; i < 256; i++) {
+    wB += hist[i];
+    if (!wB) continue;
+    const wF = total - wB;
+    if (!wF) break;
+    sumB += i * hist[i];
+    const mB = sumB / wB;
+    const mF = (sum - sumB) / wF;
+    const between = wB * wF * (mB - mF) * (mB - mF);
+    if (between > best) {
+      best = between;
+      t = i;
+    }
+  }
+  return t;
+}
+
+function smooth1d(arr) {
+  const out = new Float32Array(arr.length);
+  for (let i = 0; i < arr.length; i++) {
+    const a = arr[Math.max(0, i - 1)];
+    const b = arr[i];
+    const c = arr[Math.min(arr.length - 1, i + 1)];
+    out[i] = (a + b * 2 + c) / 4;
+  }
+  return out;
+}
+
+function firstRise(arr, fromStart) {
+  const n = arr.length;
+  let max = 0;
+  for (let i = 0; i < n; i++) if (arr[i] > max) max = arr[i];
+  const thr = max * 0.22;
+  if (fromStart) {
+    for (let i = 1; i < n - 2; i++) if (arr[i] > thr && arr[i] >= arr[i - 1]) return i;
+    return 0;
+  }
+  for (let i = n - 2; i > 1; i--) if (arr[i] > thr && arr[i] >= arr[i + 1]) return i;
+  return n - 1;
+}
+
+function projectionQuad(gray, mag, w, h) {
+  const row = new Float32Array(h);
+  const col = new Float32Array(w);
+  const rowM = new Float32Array(h);
+  const colM = new Float32Array(w);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const g = gray[y * w + x];
+      const m = mag[y * w + x];
+      row[y] += g;
+      col[x] += g;
+      rowM[y] += m;
+      colM[x] += m;
+    }
+  }
+  const r = smooth1d(rowM);
+  const c = smooth1d(colM);
+  const top = firstRise(r, true);
+  const bot = firstRise(r, false);
+  const left = firstRise(c, true);
+  const right = firstRise(c, false);
+  if (bot - top < h * 0.18 || right - left < w * 0.18) return null;
+  const q = orderQuad([
+    { x: left, y: top },
+    { x: right, y: top },
+    { x: right, y: bot },
+    { x: left, y: bot },
+  ]);
+  if (!isValidQuad(q, w, h) || hugsFrame(q, w, h)) return null;
+  return q;
 }
 
 function convexHull(points) {
@@ -194,20 +290,22 @@ function convexHull(points) {
   return lower.concat(upper);
 }
 
-function approxQuad(hull) {
+function approxQuad(hull, w, h) {
   if (hull.length < 4) return hull;
   let best = hull.slice(0, 4);
   let bestScore = -1;
   const n = hull.length;
-  const step = Math.max(1, Math.floor(n / 18));
+  const step = Math.max(1, Math.floor(n / 16));
   for (let i = 0; i < n; i += step) {
     for (let j = i + 1; j < n; j += step) {
       for (let k = j + 1; k < n; k += step) {
         for (let l = k + 1; l < n; l += step) {
-          const q = [hull[i], hull[j], hull[k], hull[l]];
-          const a = quadArea(orderQuad(q));
-          if (a > bestScore) {
-            bestScore = a;
+          const q = orderQuad([hull[i], hull[j], hull[k], hull[l]]);
+          if (w && h && hugsFrame(q, w, h)) continue;
+          const a = quadArea(q);
+          const score = a * (0.35 + 0.65 * rectScore(q));
+          if (score > bestScore) {
+            bestScore = score;
             best = q;
           }
         }
@@ -331,35 +429,44 @@ export function enhanceDocument(canvas, mode) {
 }
 
 export async function processPhoto(img, mode, look) {
-  const iw = img.naturalWidth || img.width || 0;
-  const ih = img.naturalHeight || img.height || 0;
+  const iw = img.naturalWidth || img.videoWidth || img.width || 0;
+  const ih = img.naturalHeight || img.videoHeight || img.height || 0;
   const src = document.createElement("canvas");
-  const maxW = 1400;
+  const maxW = 1600;
   const scale = iw > maxW ? maxW / Math.max(1, iw) : 1;
   src.width = Math.max(1, Math.round(iw * scale));
   src.height = Math.max(1, Math.round(ih * scale));
-  src.getContext("2d").drawImage(img, 0, 0, src.width, src.height);
+  const sctx = src.getContext("2d", { willReadFrequently: true });
+  sctx.drawImage(img, 0, 0, src.width, src.height);
 
   let work = src;
-  const crop = mode === "auto";
-  if (crop) {
+  const crop = mode === "auto" || mode === "" || mode == null;
+  if (crop && src.width > 8 && src.height > 8) {
     const tryDetect = (longSide) => {
-      const small = document.createElement("canvas");
-      const s = longSide / Math.max(src.width, src.height, 1);
-      small.width = Math.max(8, Math.round(src.width * s));
-      small.height = Math.max(8, Math.round(src.height * s));
-      const sctx = small.getContext("2d", { willReadFrequently: true });
-      sctx.drawImage(src, 0, 0, small.width, small.height);
-      const id = sctx.getImageData(0, 0, small.width, small.height);
-      const q = detectDocumentQuad(id, small.width, small.height);
-      if (!q) return null;
-      return q.map((p) => ({ x: p.x / s, y: p.y / s }));
+      try {
+        const small = document.createElement("canvas");
+        const s = longSide / Math.max(src.width, src.height, 1);
+        small.width = Math.max(12, Math.round(src.width * s));
+        small.height = Math.max(12, Math.round(src.height * s));
+        const ctx = small.getContext("2d", { willReadFrequently: true });
+        ctx.drawImage(src, 0, 0, small.width, small.height);
+        const id = ctx.getImageData(0, 0, small.width, small.height);
+        const q = detectDocumentQuad(id, small.width, small.height);
+        if (!q) return null;
+        return q.map((p) => ({ x: p.x / s, y: p.y / s }));
+      } catch {
+        return null;
+      }
     };
-    const quad = tryDetect(420) || tryDetect(280);
+    const quad = tryDetect(560) || tryDetect(400) || tryDetect(280);
     if (quad) {
       const w = Math.round(Math.max(dist(quad[0], quad[1]), dist(quad[3], quad[2])));
       const h = Math.round(Math.max(dist(quad[0], quad[3]), dist(quad[1], quad[2])));
-      work = warpToCanvas(src, quad, clamp(w, 400, 1600), clamp(h, 400, 2200));
+      try {
+        work = warpToCanvas(src, quad, clamp(w, 320, 1800), clamp(h, 320, 2400));
+      } catch {
+        work = src;
+      }
     }
   }
   enhanceDocument(work, look || "color_paper");

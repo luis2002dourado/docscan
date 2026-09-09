@@ -141,6 +141,15 @@ function readFile(file, kind) {
 /* SCAN */
 const scanPages = [];
 
+function bitmapToCanvas(bmp) {
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, bmp.width);
+  c.height = Math.max(1, bmp.height);
+  c.getContext("2d").drawImage(bmp, 0, 0);
+  if (bmp.close) bmp.close();
+  return c;
+}
+
 async function loadImage(file) {
   if (typeof createImageBitmap === "function") {
     try {
@@ -150,27 +159,35 @@ async function loadImage(file) {
       } catch {
         bmp = await createImageBitmap(file);
       }
-      const c = document.createElement("canvas");
-      c.width = bmp.width;
-      c.height = bmp.height;
-      c.getContext("2d").drawImage(bmp, 0, 0);
-      if (bmp.close) bmp.close();
-      return c;
+      if (bmp && bmp.width && bmp.height) return bitmapToCanvas(bmp);
     } catch {
       /* fallback */
     }
   }
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
+  const dataUrl = await new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => {
-      img.src = reader.result;
-    };
+    reader.onload = () => resolve(reader.result);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+  const img = new Image();
+  img.src = dataUrl;
+  await new Promise((res, rej) => {
+    img.onload = res;
+    img.onerror = rej;
+  });
+  if (img.decode) {
+    try {
+      await img.decode();
+    } catch {
+      /* ignore */
+    }
+  }
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, img.naturalWidth || img.width);
+  c.height = Math.max(1, img.naturalHeight || img.height);
+  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  return c;
 }
 
 function scanSettings() {
