@@ -109,9 +109,7 @@ function wipeSession() {
   $("merge-empty").classList.remove("hide");
   $("edit-empty").classList.remove("hide");
 }
-window.addEventListener("pagehide", () => {
-  urls.forEach((u) => URL.revokeObjectURL(u));
-});
+window.addEventListener("pagehide", () => {});
 
 document.querySelectorAll(".tab").forEach((btn) => {
   btn.addEventListener("click", () => {
@@ -173,6 +171,16 @@ async function pdfPagesToImages(file) {
   return imgs;
 }
 
+function thumbData(img) {
+  const c = document.createElement("canvas");
+  const max = 280;
+  const s = Math.min(1, max / Math.max(img.width || 1, img.height || 1));
+  c.width = Math.max(1, Math.round((img.width || 100) * s));
+  c.height = Math.max(1, Math.round((img.height || 100) * s));
+  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL("image/jpeg", 0.7);
+}
+
 async function addImages(files) {
   const list = [...files];
   if (!list.length) return;
@@ -184,11 +192,19 @@ async function addImages(files) {
       const isPdf = /pdf$/i.test(file.type) || /\.pdf$/i.test(file.name);
       const sources = isPdf ? await pdfPagesToImages(file) : [await loadImage(file)];
       for (const img of sources) {
-        scanPages.push({ img, canvas: null, base: null, cropMode: "", name: sanitizeFilename(file.name), text: "" });
+        scanPages.push({
+          img,
+          preview: thumbData(img),
+          canvas: null,
+          base: null,
+          cropMode: "",
+          name: sanitizeFilename(file.name),
+          text: "",
+        });
       }
     }
     updateQueue();
-    toast("Arquivo na fila. Escolha as opções e clique em Aplicar.");
+    toast("Pré-visualização pronta. Confira abaixo do botão Enviar.");
   } catch (err) {
     console.error(err);
     toast("Falha ao ler o arquivo.");
@@ -199,31 +215,28 @@ async function addImages(files) {
 
 function updateQueue() {
   const el = $("scan-queue");
-  if (!el) return;
-  const n = scanPages.length;
-  el.textContent = n
-    ? n + " arquivo(s) na fila. Confira a pré-visualização, escolha recorte/realce e clique Aplicar."
-    : "Nenhum arquivo na fila.";
-  const box = $("scan-preview");
+  if (el) {
+    const n = scanPages.length;
+    el.textContent = n
+      ? n + " arquivo(s) na fila — pré-visualização:"
+      : "Nenhum arquivo na fila.";
+  }
+  let box = $("scan-preview");
+  if (!box && el) {
+    box = document.createElement("div");
+    box.id = "scan-preview";
+    box.className = "grid preview-grid";
+    el.insertAdjacentElement("afterend", box);
+  }
   if (!box) return;
   box.innerHTML = "";
   scanPages.forEach((p, i) => {
     const card = document.createElement("article");
     card.className = "card";
-    const thumb = document.createElement("div");
-    thumb.className = "thumb";
-    const im = document.createElement("img");
-    im.alt = "Pré-visualização " + (i + 1);
-    im.src = p.img.src || "";
-    if (!im.src && p.img instanceof HTMLCanvasElement) {
-      im.src = p.img.toDataURL("image/jpeg", 0.7);
-    }
-    thumb.appendChild(im);
-    card.appendChild(thumb);
-    const meta = document.createElement("div");
-    meta.className = "meta";
-    meta.innerHTML = `<span>Fila ${i + 1}</span><button type="button" data-qrm="${i}">✕</button>`;
-    card.appendChild(meta);
+    const src = p.preview || (p.img && p.img.src) || "";
+    card.innerHTML =
+      `<div class="thumb"><img alt="Prévia ${i + 1}" src="${src}"></div>` +
+      `<div class="meta"><span>Fila ${i + 1}</span><button type="button" data-qrm="${i}">✕</button></div>`;
     box.appendChild(card);
   });
 }
@@ -568,14 +581,50 @@ $("edit-export").addEventListener("click", async () => {
   fxHide();
 });
 
+function askPdfName(sugestao) {
+  return new Promise((resolve) => {
+    const modal = $("name-modal");
+    const input = $("pdf-name");
+    if (!modal || !input) {
+      const n = window.prompt("Como vai se chamar o PDF?", sugestao);
+      resolve(n ? n.replace(/\.pdf$/i, "").trim() : null);
+      return;
+    }
+    input.value = sugestao;
+    modal.classList.remove("hide");
+    input.focus();
+    input.select();
+    const done = (val) => {
+      modal.classList.add("hide");
+      $("name-ok").removeEventListener("click", ok);
+      $("name-cancel").removeEventListener("click", cancel);
+      input.removeEventListener("keydown", key);
+      resolve(val);
+    };
+    const ok = () => {
+      let n = (input.value || "").trim() || sugestao;
+      n = n.replace(/\.pdf$/i, "");
+      done(n);
+    };
+    const cancel = () => done(null);
+    const key = (e) => {
+      if (e.key === "Enter") ok();
+      if (e.key === "Escape") cancel();
+    };
+    $("name-ok").addEventListener("click", ok);
+    $("name-cancel").addEventListener("click", cancel);
+    input.addEventListener("keydown", key);
+  });
+}
+
 async function downloadPdf(pdf, name) {
   const bytes = await pdf.save();
   const blob = new Blob([bytes], { type: "application/pdf" });
   const a = document.createElement("a");
   a.href = trackUrl(URL.createObjectURL(blob));
-  a.download = sanitizeFilename(name);
+  a.download = sanitizeFilename(name) + (String(name).toLowerCase().endsWith(".pdf") ? "" : ".pdf");
   a.click();
-  toast("Download iniciado. Nada ficou no servidor.");
+  toast("Salvo como " + a.download);
 }
 
 function printCanvases(canvases) {
