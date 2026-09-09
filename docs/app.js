@@ -201,7 +201,31 @@ function updateQueue() {
   const el = $("scan-queue");
   if (!el) return;
   const n = scanPages.length;
-  el.textContent = n ? n + " arquivo(s) na fila. Escolha recorte/realce e clique Aplicar." : "Nenhum arquivo na fila.";
+  el.textContent = n
+    ? n + " arquivo(s) na fila. Confira a pré-visualização, escolha recorte/realce e clique Aplicar."
+    : "Nenhum arquivo na fila.";
+  const box = $("scan-preview");
+  if (!box) return;
+  box.innerHTML = "";
+  scanPages.forEach((p, i) => {
+    const card = document.createElement("article");
+    card.className = "card";
+    const thumb = document.createElement("div");
+    thumb.className = "thumb";
+    const im = document.createElement("img");
+    im.alt = "Pré-visualização " + (i + 1);
+    im.src = p.img.src || "";
+    if (!im.src && p.img instanceof HTMLCanvasElement) {
+      im.src = p.img.toDataURL("image/jpeg", 0.7);
+    }
+    thumb.appendChild(im);
+    card.appendChild(thumb);
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    meta.innerHTML = `<span>Fila ${i + 1}</span><button type="button" data-qrm="${i}">✕</button>`;
+    card.appendChild(meta);
+    box.appendChild(card);
+  });
 }
 
 async function reprocessScan() {

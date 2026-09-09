@@ -175,7 +175,12 @@ body {
   color: #fff;
   border-color: var(--teal);
 }
-.apply { margin-top: 8px; width: 100%; max-width: 280px; }
+.preview-grid { margin-top: 12px; }
+.preview-grid .thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 .work-head h2 { font-family: "Source Serif 4", serif; font-size: clamp(26px, 5vw, 36px); margin-bottom: 6px; color: var(--baltic); }
 .tabs { display: flex; gap: 8px; margin: 18px 0; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
 .tab, .chip, select, input[type="number"], input[type="text"], #text-content {
