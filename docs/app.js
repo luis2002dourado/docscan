@@ -191,7 +191,12 @@ async function loadImage(file) {
 }
 
 function scanSettings() {
-  return { mode: $("scan-mode").value, look: $("scan-look").value };
+  const modeBtn = document.querySelector("#mode-btns .look.on");
+  const lookBtn = document.querySelector("#look-btns .look.on");
+  return {
+    mode: (modeBtn && modeBtn.dataset.mode) || ($("scan-mode") && $("scan-mode").value) || "auto",
+    look: (lookBtn && lookBtn.dataset.look) || ($("scan-look") && $("scan-look").value) || "color_paper",
+  };
 }
 
 async function pdfPagesToImages(file) {

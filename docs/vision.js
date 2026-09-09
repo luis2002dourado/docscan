@@ -107,6 +107,49 @@ export function escapeText(s) {
     .replace(/"/g, "&quot;");
 }
 
+function ctx2d(canvas) {
+  return canvas.getContext("2d", { willReadFrequently: true }) || canvas.getContext("2d");
+}
+
+function contentBox(gray, w, h) {
+  const samples = [];
+  for (let x = 0; x < w; x += 1) {
+    samples.push(gray[x], gray[(h - 1) * w + x]);
+  }
+  for (let y = 0; y < h; y += 1) {
+    samples.push(gray[y * w], gray[y * w + w - 1]);
+  }
+  samples.sort((a, b) => a - b);
+  const med = samples[samples.length >> 1];
+  const tol = 32;
+  const rowBorder = (y) => {
+    let same = 0;
+    for (let x = 0; x < w; x++) if (Math.abs(gray[y * w + x] - med) < tol) same++;
+    return same / w > 0.7;
+  };
+  const colBorder = (x) => {
+    let same = 0;
+    for (let y = 0; y < h; y++) if (Math.abs(gray[y * w + x] - med) < tol) same++;
+    return same / h > 0.7;
+  };
+  let top = 0;
+  let bot = h - 1;
+  let left = 0;
+  let right = w - 1;
+  while (top < bot - 10 && rowBorder(top)) top++;
+  while (bot > top + 10 && rowBorder(bot)) bot--;
+  while (left < right - 10 && colBorder(left)) left++;
+  while (right > left + 10 && colBorder(right)) right--;
+  if (top < 2 && left < 2 && bot > h - 3 && right > w - 3) return null;
+  const q = orderQuad([
+    { x: left, y: top },
+    { x: right, y: top },
+    { x: right, y: bot },
+    { x: left, y: bot },
+  ]);
+  return isValidQuad(q, w, h) ? q : null;
+}
+
 export function detectDocumentQuad(imageData, w, h) {
   const gray = new Float32Array(w * h);
   const d = imageData.data;
@@ -148,6 +191,7 @@ export function detectDocumentQuad(imageData, w, h) {
   };
 
   let q =
+    contentBox(gray, w, h) ||
     fromEdges(0.2, 0.03) ||
     fromEdges(0.14, 0.02) ||
     fromEdges(0.1, 0.015) ||
@@ -315,7 +359,37 @@ function approxQuad(hull, w, h) {
   return orderQuad(best);
 }
 
+function axisAligned(quad, tol) {
+  const [tl, tr, br, bl] = orderQuad(quad);
+  return (
+    Math.abs(tl.y - tr.y) <= tol &&
+    Math.abs(bl.y - br.y) <= tol &&
+    Math.abs(tl.x - bl.x) <= tol &&
+    Math.abs(tr.x - br.x) <= tol
+  );
+}
+
+function cropDraw(srcCanvas, quad) {
+  const xs = quad.map((p) => p.x);
+  const ys = quad.map((p) => p.y);
+  let x = Math.max(0, Math.floor(Math.min(...xs)));
+  let y = Math.max(0, Math.floor(Math.min(...ys)));
+  let x2 = Math.min(srcCanvas.width, Math.ceil(Math.max(...xs)));
+  let y2 = Math.min(srcCanvas.height, Math.ceil(Math.max(...ys)));
+  const w = x2 - x;
+  const h = y2 - y;
+  if (w < 16 || h < 16) return srcCanvas;
+  const out = document.createElement("canvas");
+  out.width = w;
+  out.height = h;
+  ctx2d(out).drawImage(srcCanvas, x, y, w, h, 0, 0, w, h);
+  return out;
+}
+
 export function warpToCanvas(srcCanvas, quad, outW, outH) {
+  if (axisAligned(quad, Math.max(4, Math.min(srcCanvas.width, srcCanvas.height) * 0.02))) {
+    return cropDraw(srcCanvas, quad);
+  }
   const dst = [
     { x: 0, y: 0 },
     { x: outW - 1, y: 0 },
@@ -326,8 +400,8 @@ export function warpToCanvas(srcCanvas, quad, outW, outH) {
   const out = document.createElement("canvas");
   out.width = outW;
   out.height = outH;
-  const ctx = out.getContext("2d");
-  const sctx = srcCanvas.getContext("2d", { willReadFrequently: true });
+  const ctx = ctx2d(out);
+  const sctx = ctx2d(srcCanvas);
   const src = sctx.getImageData(0, 0, srcCanvas.width, srcCanvas.height);
   const dest = ctx.createImageData(outW, outH);
   const sw = srcCanvas.width;
@@ -367,7 +441,8 @@ export function warpToCanvas(srcCanvas, quad, outW, outH) {
 }
 
 export function enhanceDocument(canvas, mode) {
-  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  const ctx = ctx2d(canvas);
+  if (!ctx) return canvas;
   const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const d = img.data;
   if (mode === "original") return canvas;
@@ -436,7 +511,7 @@ export async function processPhoto(img, mode, look) {
   const scale = iw > maxW ? maxW / Math.max(1, iw) : 1;
   src.width = Math.max(1, Math.round(iw * scale));
   src.height = Math.max(1, Math.round(ih * scale));
-  const sctx = src.getContext("2d", { willReadFrequently: true });
+  const sctx = ctx2d(src);
   sctx.drawImage(img, 0, 0, src.width, src.height);
 
   let work = src;
@@ -448,7 +523,7 @@ export async function processPhoto(img, mode, look) {
         const s = longSide / Math.max(src.width, src.height, 1);
         small.width = Math.max(12, Math.round(src.width * s));
         small.height = Math.max(12, Math.round(src.height * s));
-        const ctx = small.getContext("2d", { willReadFrequently: true });
+        const ctx = ctx2d(small);
         ctx.drawImage(src, 0, 0, small.width, small.height);
         const id = ctx.getImageData(0, 0, small.width, small.height);
         const q = detectDocumentQuad(id, small.width, small.height);
@@ -458,14 +533,14 @@ export async function processPhoto(img, mode, look) {
         return null;
       }
     };
-    const quad = tryDetect(560) || tryDetect(400) || tryDetect(280);
+    const quad = tryDetect(480) || tryDetect(320);
     if (quad) {
       const w = Math.round(Math.max(dist(quad[0], quad[1]), dist(quad[3], quad[2])));
       const h = Math.round(Math.max(dist(quad[0], quad[3]), dist(quad[1], quad[2])));
       try {
-        work = warpToCanvas(src, quad, clamp(w, 320, 1800), clamp(h, 320, 2400));
+        work = warpToCanvas(src, quad, clamp(w, 280, 1200), clamp(h, 280, 1600));
       } catch {
-        work = src;
+        work = cropDraw(src, quad);
       }
     }
   }
