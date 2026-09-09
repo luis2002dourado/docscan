@@ -13,6 +13,17 @@ const PDFLib = window.PDFLib;
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./sw.js").catch(() => {});
 }
+const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+if (ios && !standalone) {
+  const btn = document.getElementById("install-btn");
+  if (btn) {
+    btn.classList.remove("hide");
+    btn.addEventListener("click", () => {
+      toast("No iPhone: toque em Compartilhar e depois em Adicionar à Tela de Início. O ícone será a logo.");
+    });
+  }
+}
 let deferredInstall = null;
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
