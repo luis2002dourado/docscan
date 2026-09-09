@@ -62,8 +62,9 @@ export function isValidQuad(q, w, h) {
   if (a < w * h * 0.06) return false;
   if (a > w * h * 0.995) return false;
   const [tl, tr, br, bl] = orderQuad(q);
-  if (dist(tl, tr) < w * 0.1 || dist(bl, br) < w * 0.1) return false;
-  if (dist(tl, bl) < h * 0.1 || dist(tr, br) < h * 0.1) return false;
+  if (dist(tl, tr) < w * 0.08 || dist(bl, br) < w * 0.08) return false;
+  if (dist(tl, bl) < h * 0.08 || dist(tr, br) < h * 0.08) return false;
+  if (!isConvexQuad(q)) return false;
   return true;
 }
 
@@ -79,8 +80,88 @@ function rectScore(q) {
 }
 
 function hugsFrame(q, w, h) {
-  const m = 3;
-  return q.every((p) => p.x <= m || p.x >= w - m || p.y <= m || p.y >= h - m);
+  const m = 2;
+  return q.every((p) => p.x <= m || p.x >= w - 1 - m || p.y <= m || p.y >= h - 1 - m);
+}
+
+function isConvexQuad(q) {
+  const p = orderQuad(q);
+  let sign = 0;
+  for (let i = 0; i < 4; i++) {
+    const a = p[i],
+      b = p[(i + 1) % 4],
+      c = p[(i + 2) % 4];
+    const cr = (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x);
+    if (Math.abs(cr) < 1e-4) continue;
+    const s = Math.sign(cr);
+    if (!sign) sign = s;
+    else if (s !== sign) return false;
+  }
+  return true;
+}
+
+function intersectLines(p1, p2, p3, p4) {
+  const d = (p1.x - p2.x) * (p3.y - p4.y) - (p1.y - p2.y) * (p3.x - p4.x);
+  if (Math.abs(d) < 1e-8) return null;
+  const t = ((p1.x - p3.x) * (p3.y - p4.y) - (p1.y - p3.y) * (p3.x - p4.x)) / d;
+  return { x: p1.x + t * (p2.x - p1.x), y: p1.y + t * (p2.y - p1.y) };
+}
+
+function angDiff(a, b) {
+  let d = Math.abs(a - b) % Math.PI;
+  if (d > Math.PI / 2) d = Math.PI - d;
+  return d;
+}
+
+function hullToQuad(hull) {
+  if (!hull || hull.length < 4) return null;
+  const n = hull.length;
+  const raw = [];
+  for (let i = 0; i < n; i++) {
+    const a = hull[i],
+      b = hull[(i + 1) % n];
+    const len = dist(a, b);
+    if (len < 1) continue;
+    raw.push({ a, b, len, ang: Math.atan2(b.y - a.y, b.x - a.x) });
+  }
+  if (raw.length < 4) return hull.length === 4 ? hull : null;
+  const segs = [];
+  const pushMerge = (e) => {
+    if (!segs.length) {
+      segs.push({ a: e.a, b: e.b, len: e.len, ang: e.ang });
+      return;
+    }
+    const last = segs[segs.length - 1];
+    if (angDiff(e.ang, last.ang) < (18 * Math.PI) / 180) {
+      last.b = e.b;
+      last.len += e.len;
+      last.ang = Math.atan2(last.b.y - last.a.y, last.b.x - last.a.x);
+    } else segs.push({ a: e.a, b: e.b, len: e.len, ang: e.ang });
+  };
+  raw.forEach(pushMerge);
+  if (segs.length > 1 && angDiff(segs[0].ang, segs[segs.length - 1].ang) < (18 * Math.PI) / 180) {
+    const f = segs[0];
+    const l = segs.pop();
+    f.a = l.a;
+    f.len += l.len;
+    f.ang = Math.atan2(f.b.y - f.a.y, f.b.x - f.a.x);
+  }
+  let use = segs;
+  if (segs.length > 4) {
+    const ranked = segs.map((s, i) => ({ i, len: s.len })).sort((a, b) => b.len - a.len);
+    const keep = new Set(ranked.slice(0, 4).map((x) => x.i));
+    use = segs.filter((_, i) => keep.has(i));
+  }
+  if (use.length !== 4) return toFourCorners(hull);
+  const corners = [];
+  for (let i = 0; i < 4; i++) {
+    const e1 = use[i];
+    const e2 = use[(i + 1) % 4];
+    const p = intersectLines(e1.a, e1.b, e2.a, e2.b);
+    if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return toFourCorners(hull);
+    corners.push(p);
+  }
+  return corners;
 }
 export function solveHomography(src, dst) {
   const A = [];
@@ -332,28 +413,36 @@ export function detectDocumentQuad(imageData, w, h) {
   }
 
   const scoreQ = (q) => {
-    if (!isValidQuad(q, w, h) || hugsFrame(q, w, h)) return -1;
-    const r = rectScore(q);
-    if (r < 0.35) return -1;
-    return quadArea(q) * (0.4 + 0.6 * r);
+    if (!q || q.length !== 4) return -1;
+    const o = orderQuad(q);
+    if (!isValidQuad(o, w, h) || hugsFrame(o, w, h)) return -1;
+    return quadArea(o);
   };
 
-  let best = null;
-  let bestS = -1;
-  const comps = connectedEdgeComponents(dil, w, h);
-  for (const pts of comps) {
+  const consider = (pts, best) => {
+    if (!pts || pts.length < 20) return best;
     const hull = convexHull(pts);
-    if (hull.length < 4) continue;
-    const four = toFourCorners(hull);
-    if (!four || four.length !== 4) continue;
+    if (hull.length < 4) return best;
+    const four = hullToQuad(hull) || toFourCorners(hull);
+    if (!four || four.length !== 4) return best;
     const q = orderQuad(four);
     const s = scoreQ(q);
-    if (s > bestS) {
-      bestS = s;
-      best = q;
-    }
-  }
-  if (best) return best;
+    if (s > best.s) return { s, q };
+    return best;
+  };
+
+  let best = { s: -1, q: null };
+
+  const otsuT = otsuThreshold(gray0);
+  const paperBin = new Uint8Array(w * h);
+  for (let i = 0; i < gray0.length; i++) paperBin[i] = gray0[i] >= otsuT ? 1 : 0;
+  const paperComps = connectedEdgeComponents(paperBin, w, h);
+  for (const pts of paperComps) best = consider(pts, best);
+
+  const comps = connectedEdgeComponents(dil, w, h);
+  for (const pts of comps) best = consider(pts, best);
+
+  if (best.q) return best.q;
 
   const edgePts = [];
   const pad = Math.max(2, Math.round(Math.min(w, h) * 0.02));
@@ -362,23 +451,8 @@ export function detectDocumentQuad(imageData, w, h) {
       if (dil[y * w + x]) edgePts.push({ x, y });
     }
   }
-  if (edgePts.length > 24) {
-    const q = orderQuad(toFourCorners(convexHull(edgePts)));
-    if (scoreQ(q) > 0) return q;
-  }
-
-  const otsuT = otsuThreshold(gray0);
-  const paper = [];
-  for (let y = 1; y < h - 1; y += 1) {
-    for (let x = 1; x < w - 1; x += 1) {
-      if (gray0[y * w + x] >= otsuT) paper.push({ x, y });
-    }
-  }
-  if (paper.length > 80) {
-    const q = orderQuad(toFourCorners(convexHull(paper)));
-    if (scoreQ(q) > 0) return q;
-  }
-  return null;
+  best = consider(edgePts, best);
+  return best.q;
 }
 
 function otsuThreshold(gray) {
