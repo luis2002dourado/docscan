@@ -134,7 +134,19 @@
       </div>
     </div>
   </div>
-  <div id="toast" class="toast hide" role="status"></div>
+  <div id="name-modal" class="modal hide">
+    <div class="sheet">
+      <h3>Como vai se chamar o PDF?</h3>
+      <label>Nome do arquivo
+        <input id="pdf-name" maxlength="80" placeholder="meu-documento" />
+      </label>
+      <p class="note">A extensão .pdf é adicionada sozinha.</p>
+      <div class="actions">
+        <button type="button" id="name-cancel" class="chip ghost">Cancelar</button>
+        <button type="button" id="name-ok" class="chip green">Salvar</button>
+      </div>
+    </div>
+  </div>
   <div id="fx" class="fx-overlay hide">
     <div class="fx-card">
       <div class="spinner"></div>

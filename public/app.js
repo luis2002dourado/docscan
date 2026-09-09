@@ -308,18 +308,21 @@ $("scan-clear").addEventListener("click", () => {
   renderScan();
 });
 $("scan-export").addEventListener("click", async () => {
-  if (!scanPages.length) return toast("Adicione páginas.");
+  if (!scanPages.some((p) => p.canvas)) return toast("Aplique as mudanças primeiro.");
+  const nome = await askPdfName("documento");
+  if (!nome) return;
   fxShow("Gerando PDF…");
   try {
     const { PDFDocument } = PDFLib;
     const pdf = await PDFDocument.create();
     for (const p of scanPages) {
+      if (!p.canvas) continue;
       const blob = await new Promise((r) => p.canvas.toBlob(r, "image/jpeg", 0.88));
       const img = await pdf.embedJpg(await blob.arrayBuffer());
       const page = pdf.addPage([img.width, img.height]);
       page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
     }
-    await downloadPdf(pdf, "documento.pdf");
+    await downloadPdf(pdf, nome);
   } finally {
     fxHide();
   }
@@ -385,6 +388,8 @@ $("merge-clear").addEventListener("click", () => {
 });
 $("merge-export").addEventListener("click", async () => {
   if (!mergeItems.length) return toast("Adicione PDFs.");
+  const nome = await askPdfName("unido");
+  if (!nome) return;
   fxShow("Unindo PDFs…");
   try {
     const { PDFDocument } = PDFLib;
@@ -394,7 +399,7 @@ $("merge-export").addEventListener("click", async () => {
       const pages = await out.copyPages(src, src.getPageIndices());
       pages.forEach((p) => out.addPage(p));
     }
-    await downloadPdf(out, "unido.pdf");
+    await downloadPdf(out, nome);
   } finally {
     fxHide();
   }
@@ -509,6 +514,8 @@ $("text-ok").addEventListener("click", () => {
 });
 $("edit-export").addEventListener("click", async () => {
   if (!editState) return toast("Abra um PDF.");
+  const nome = await askPdfName("editado");
+  if (!nome) return;
   fxShow("Salvando PDF…");
   const { PDFDocument, StandardFonts, rgb, degrees } = PDFLib;
   const src = await PDFDocument.load(editState.bytes);
