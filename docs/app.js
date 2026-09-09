@@ -292,6 +292,12 @@ function updateQueue() {
   });
 }
 
+function nextPaint() {
+  // Um único rAF só garante "antes do próximo frame". Dois seguidos garantem que o
+  // frame anterior (com o popup já visível) foi de fato pintado antes de continuarmos.
+  return new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+}
+
 async function reprocessScan() {
   if (!scanPages.length) {
     toast("Envie um arquivo primeiro.");
@@ -299,9 +305,12 @@ async function reprocessScan() {
   }
   const { mode, look } = scanSettings();
   const doOcr = $("scan-ocr") && $("scan-ocr").checked;
-    fxShow("Recortando e endireitando a folha…");
+  fxShow("Recortando e endireitando a folha…");
+  await nextPaint();
   try {
-    for (const p of scanPages) {
+    for (let i = 0; i < scanPages.length; i++) {
+      const p = scanPages[i];
+      if (scanPages.length > 1) fxShow(`Recortando e endireitando (${i + 1}/${scanPages.length})…`);
       p.base = await processPhoto(p.img, mode, "original");
       p.cropMode = mode;
       const copy = document.createElement("canvas");
@@ -317,6 +326,7 @@ async function reprocessScan() {
           p.text = "";
         }
       }
+      await nextPaint();
     }
     renderScan();
     toast("Pronto. Confira o resultado abaixo.");

@@ -876,8 +876,8 @@ function makeEdgeMats(cv, gray) {
   return out;
 }
 
-export function scanWithOpenCv(cv, srcCanvas) {
-  const src = cv.imread(srcCanvas);
+function detectQuadOpenCv(cv, canvas) {
+  const src = cv.imread(canvas);
   const mats = [src];
   try {
     const gray0 = new cv.Mat();
@@ -887,26 +887,60 @@ export function scanWithOpenCv(cv, srcCanvas) {
     mats.push(gray);
     cv.GaussianBlur(gray0, gray, new cv.Size(5, 5), 0);
 
-    const detectW = gray.cols;
-    const detectH = gray.rows;
-    let quad = null;
+    const w = gray.cols;
+    const h = gray.rows;
     const edgeMats = makeEdgeMats(cv, gray);
     mats.push(...edgeMats);
     for (const bin of edgeMats) {
       const contours = new cv.MatVector();
       const hier = new cv.Mat();
       cv.findContours(bin, contours, hier, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
-      const q = bestQuadInContours(cv, contours, detectW, detectH);
+      const q = bestQuadInContours(cv, contours, w, h);
       contours.delete();
       hier.delete();
-      if (q) {
-        quad = q;
-        break;
-      }
+      if (q) return q;
     }
-    if (!quad) return null;
+    return null;
+  } finally {
+    mats.forEach((m) => {
+      try {
+        m.delete();
+      } catch {
+        /* ignore */
+      }
+    });
+  }
+}
 
-    const o = orderQuad(quad);
+// Detecta em uma versão reduzida da imagem (rápido: poucas centenas de ms mesmo em
+// celular fraco) e aplica a perspectiva na resolução cheia (qualidade). Rodar Canny/
+// adaptiveThreshold/findContours direto em 1600x2000px é o que travava o app antes —
+// foi por isso que a versão anterior de OpenCV tinha sido removida do projeto.
+export function scanWithOpenCv(cv, srcCanvas) {
+  const DETECT_LONG_SIDE = 900;
+  const maxSide = Math.max(srcCanvas.width, srcCanvas.height, 1);
+  const scaleDown = maxSide > DETECT_LONG_SIDE ? DETECT_LONG_SIDE / maxSide : 1;
+
+  let quad;
+  if (scaleDown < 1) {
+    const small = document.createElement("canvas");
+    small.width = Math.max(12, Math.round(srcCanvas.width * scaleDown));
+    small.height = Math.max(12, Math.round(srcCanvas.height * scaleDown));
+    small.getContext("2d").drawImage(srcCanvas, 0, 0, small.width, small.height);
+    const q = detectQuadOpenCv(cv, small);
+    if (!q) return null;
+    const sx = srcCanvas.width / small.width;
+    const sy = srcCanvas.height / small.height;
+    quad = orderQuad(q.map((p) => ({ x: p.x * sx, y: p.y * sy })));
+  } else {
+    const q = detectQuadOpenCv(cv, srcCanvas);
+    if (!q) return null;
+    quad = orderQuad(q);
+  }
+
+  const src = cv.imread(srcCanvas);
+  try {
+    const o = quad;
     let w = Math.round(Math.max(dist(o[0], o[1]), dist(o[3], o[2])));
     let h = Math.round(Math.max(dist(o[0], o[3]), dist(o[1], o[2])));
     w = clamp(w, 400, 1600);
@@ -924,13 +958,7 @@ export function scanWithOpenCv(cv, srcCanvas) {
     dst.delete();
     return out;
   } finally {
-    mats.forEach((m) => {
-      try {
-        m.delete();
-      } catch {
-        /* ignore */
-      }
-    });
+    src.delete();
   }
 }
 
