@@ -74,11 +74,10 @@ body {
   background: rgba(240, 243, 189, 0.88);
   backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
 }
-.mark { display: flex; gap: 8px; align-items: center; font-weight: 700; color: var(--baltic); text-decoration: none; }
-.leaf {
-  width: 18px; height: 18px; background: linear-gradient(135deg, var(--mint), var(--baltic));
-  clip-path: ellipse(40% 50% at 50% 50%); display: inline-block;
-  animation: floaty 3s ease-in-out infinite;
+.mark { display: flex; gap: 10px; align-items: center; font-weight: 700; color: var(--baltic); text-decoration: none; }
+.logo {
+  width: 44px; height: 44px; object-fit: contain; border-radius: 50%;
+  display: block; background: #000;
 }
 .top nav { display: flex; gap: 18px; }
 .top nav a { color: var(--teal); text-decoration: none; font-size: 14px; transition: color 0.2s; }
