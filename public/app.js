@@ -10,6 +10,32 @@ import {
 const pdfjsLib = window.pdfjsLib;
 const PDFLib = window.PDFLib;
 
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js").catch(() => {});
+}
+let deferredInstall = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredInstall = e;
+  const btn = document.getElementById("install-btn");
+  if (btn) btn.classList.remove("hide");
+});
+window.addEventListener("appinstalled", () => {
+  deferredInstall = null;
+  const btn = document.getElementById("install-btn");
+  if (btn) btn.classList.add("hide");
+});
+document.addEventListener("click", (e) => {
+  if (e.target && e.target.id === "install-btn" && deferredInstall) {
+    deferredInstall.prompt();
+    deferredInstall.userChoice.finally(() => {
+      deferredInstall = null;
+      const btn = document.getElementById("install-btn");
+      if (btn) btn.classList.add("hide");
+    });
+  }
+});
+
 const $ = (id) => document.getElementById(id);
 const on = (id, ev, fn) => {
   const el = $(id);
