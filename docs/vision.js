@@ -724,6 +724,145 @@ export function enhanceDocument(canvas, mode) {
   return canvas;
 }
 
+export async function ensureCv() {
+  if (typeof window !== "undefined" && window.cv && typeof window.cv.Mat === "function") return window.cv;
+  return new Promise((resolve, reject) => {
+    const t0 = Date.now();
+    const id = setInterval(() => {
+      if (window.cv && typeof window.cv.Mat === "function") {
+        clearInterval(id);
+        resolve(window.cv);
+      } else if (Date.now() - t0 > 28000) {
+        clearInterval(id);
+        reject(new Error("OpenCV não carregou"));
+      }
+    }, 40);
+  });
+}
+
+function ptsFromApprox(approx) {
+  const pts = [];
+  const n = approx.rows;
+  for (let i = 0; i < n; i++) {
+    pts.push({ x: approx.data32S[i * 2], y: approx.data32S[i * 2 + 1] });
+  }
+  return pts;
+}
+
+function bestQuadInContours(cv, contours, imgW, imgH) {
+  const imgArea = imgW * imgH;
+  let best = null;
+  let bestArea = 0;
+  for (let i = 0; i < contours.size(); i++) {
+    const cnt = contours.get(i);
+    const area = Math.abs(cv.contourArea(cnt, false));
+    if (area < imgArea * 0.08 || area > imgArea * 0.97) continue;
+    const peri = cv.arcLength(cnt, true);
+    for (const eps of [0.02, 0.03, 0.015, 0.04, 0.05]) {
+      const approx = new cv.Mat();
+      cv.approxPolyDP(cnt, approx, eps * peri, true);
+      if (approx.rows === 4 && cv.isContourConvex(approx)) {
+        const pts = orderQuad(ptsFromApprox(approx));
+        if (isValidQuad(pts, imgW, imgH) && area > bestArea) {
+          bestArea = area;
+          best = pts;
+        }
+      }
+      approx.delete();
+      if (best && eps === 0.02) break;
+    }
+  }
+  return best;
+}
+
+function makeEdgeMats(cv, gray) {
+  const out = [];
+  const k = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5));
+  const pairs = [
+    [50, 150],
+    [30, 100],
+    [75, 200],
+    [20, 80],
+  ];
+  for (const [a, b] of pairs) {
+    const edges = new cv.Mat();
+    cv.Canny(gray, edges, a, b);
+    cv.dilate(edges, edges, k);
+    out.push(edges);
+  }
+  const thr = new cv.Mat();
+  cv.adaptiveThreshold(gray, thr, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 21, 8);
+  const inv = new cv.Mat();
+  cv.bitwise_not(thr, inv);
+  cv.Canny(inv, inv, 50, 150);
+  cv.dilate(inv, inv, k);
+  out.push(inv);
+  const otsu = new cv.Mat();
+  cv.threshold(gray, otsu, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
+  out.push(otsu);
+  k.delete();
+  thr.delete();
+  return out;
+}
+
+export function scanWithOpenCv(cv, srcCanvas) {
+  const src = cv.imread(srcCanvas);
+  const mats = [src];
+  try {
+    const gray0 = new cv.Mat();
+    mats.push(gray0);
+    cv.cvtColor(src, gray0, cv.COLOR_RGBA2GRAY);
+    const gray = new cv.Mat();
+    mats.push(gray);
+    cv.GaussianBlur(gray0, gray, new cv.Size(5, 5), 0);
+
+    const detectW = gray.cols;
+    const detectH = gray.rows;
+    let quad = null;
+    const edgeMats = makeEdgeMats(cv, gray);
+    mats.push(...edgeMats);
+    for (const bin of edgeMats) {
+      const contours = new cv.MatVector();
+      const hier = new cv.Mat();
+      cv.findContours(bin, contours, hier, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+      const q = bestQuadInContours(cv, contours, detectW, detectH);
+      contours.delete();
+      hier.delete();
+      if (q) {
+        quad = q;
+        break;
+      }
+    }
+    if (!quad) return null;
+
+    const o = orderQuad(quad);
+    let w = Math.round(Math.max(dist(o[0], o[1]), dist(o[3], o[2])));
+    let h = Math.round(Math.max(dist(o[0], o[3]), dist(o[1], o[2])));
+    w = clamp(w, 400, 1600);
+    h = clamp(h, 400, 2000);
+    const srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [o[0].x, o[0].y, o[1].x, o[1].y, o[2].x, o[2].y, o[3].x, o[3].y]);
+    const dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, w, 0, w, h, 0, h]);
+    const M = cv.getPerspectiveTransform(srcTri, dstTri);
+    const dst = new cv.Mat();
+    cv.warpPerspective(src, dst, M, new cv.Size(w, h), cv.INTER_LINEAR, cv.BORDER_REPLICATE);
+    const out = document.createElement("canvas");
+    cv.imshow(out, dst);
+    srcTri.delete();
+    dstTri.delete();
+    M.delete();
+    dst.delete();
+    return out;
+  } finally {
+    mats.forEach((m) => {
+      try {
+        m.delete();
+      } catch {
+        /* ignore */
+      }
+    });
+  }
+}
+
 export async function processPhoto(img, mode, look) {
   const iw = img.naturalWidth || img.videoWidth || img.width || 0;
   const ih = img.naturalHeight || img.videoHeight || img.height || 0;
@@ -738,31 +877,45 @@ export async function processPhoto(img, mode, look) {
   let work = src;
   const crop = mode === "auto" || mode === "" || mode == null;
   if (crop && src.width > 8 && src.height > 8) {
-    const tryDetect = (longSide) => {
-      try {
-        const small = document.createElement("canvas");
-        const s = longSide / Math.max(src.width, src.height, 1);
-        small.width = Math.max(12, Math.round(src.width * s));
-        small.height = Math.max(12, Math.round(src.height * s));
-        const ctx = ctx2d(small);
-        ctx.drawImage(src, 0, 0, small.width, small.height);
-        const id = ctx.getImageData(0, 0, small.width, small.height);
-        const q = detectDocumentQuad(id, small.width, small.height);
-        if (!q) return null;
-        return q.map((p) => ({ x: p.x / s, y: p.y / s }));
-      } catch {
-        return null;
+    let done = false;
+    try {
+      const cv = await ensureCv();
+      const warped = scanWithOpenCv(cv, src);
+      if (warped && warped.width > 16) {
+        work = warped;
+        done = true;
       }
-    };
-    const found = tryDetect(640) || tryDetect(420);
-    if (found) {
-      const quad = orderQuad(found);
-      const w = Math.round(Math.max(dist(quad[0], quad[1]), dist(quad[3], quad[2])));
-      const h = Math.round(Math.max(dist(quad[0], quad[3]), dist(quad[1], quad[2])));
-      try {
-        work = warpToCanvas(src, quad, clamp(w, 400, 1400), clamp(h, 400, 1800));
-      } catch {
-        work = cropDraw(src, quad);
+    } catch (err) {
+      console.warn("OpenCV scan", err);
+    }
+    if (!done) {
+      const tryDetect = (longSide) => {
+        try {
+          const small = document.createElement("canvas");
+          small.width = Math.max(12, Math.round((src.width * longSide) / Math.max(src.width, src.height, 1)));
+          small.height = Math.max(12, Math.round((src.height * longSide) / Math.max(src.width, src.height, 1)));
+          const ctx = ctx2d(small);
+          ctx.drawImage(src, 0, 0, small.width, small.height);
+          const id = ctx.getImageData(0, 0, small.width, small.height);
+          const q = detectDocumentQuad(id, small.width, small.height);
+          if (!q) return null;
+          const sx = src.width / small.width;
+          const sy = src.height / small.height;
+          return q.map((p) => ({ x: p.x * sx, y: p.y * sy }));
+        } catch {
+          return null;
+        }
+      };
+      const found = tryDetect(640) || tryDetect(420);
+      if (found) {
+        const quad = orderQuad(found);
+        const w = Math.round(Math.max(dist(quad[0], quad[1]), dist(quad[3], quad[2])));
+        const h = Math.round(Math.max(dist(quad[0], quad[3]), dist(quad[1], quad[2])));
+        try {
+          work = warpToCanvas(src, quad, clamp(w, 400, 1400), clamp(h, 400, 1800));
+        } catch {
+          work = cropDraw(src, quad);
+        }
       }
     }
   }

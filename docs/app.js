@@ -299,7 +299,7 @@ async function reprocessScan() {
   }
   const { mode, look } = scanSettings();
   const doOcr = $("scan-ocr") && $("scan-ocr").checked;
-  fxShow("Aplicando…");
+    fxShow("Detectando a folha e endireitando…");
   try {
     for (const p of scanPages) {
       p.base = await processPhoto(p.img, mode, "original");
