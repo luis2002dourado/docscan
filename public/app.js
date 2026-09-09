@@ -4,9 +4,18 @@ import {
   sanitizeFilename,
   escapeText,
   processPhoto,
+  enhanceDocument,
 } from "./vision.js";
 
+const pdfjsLib = window.pdfjsLib;
+const PDFLib = window.PDFLib;
+
 const $ = (id) => document.getElementById(id);
+const on = (id, ev, fn) => {
+  const el = $(id);
+  if (el) el.addEventListener(ev, fn);
+  return el;
+};
 const toast = (m) => {
   const t = $("toast");
   t.textContent = m;
@@ -61,14 +70,16 @@ function wipeSession() {
   $("merge-empty").classList.remove("hide");
   $("edit-empty").classList.remove("hide");
 }
-window.addEventListener("pagehide", wipeSession);
-window.addEventListener("beforeunload", wipeSession);
+window.addEventListener("pagehide", () => {
+  urls.forEach((u) => URL.revokeObjectURL(u));
+});
 
 /* motion */
 const cursor = $("cursor");
 window.addEventListener(
   "pointermove",
   (e) => {
+    if (!cursor) return;
     cursor.style.left = e.clientX + "px";
     cursor.style.top = e.clientY + "px";
     document.querySelectorAll("[data-tilt]").forEach((el, i) => {
@@ -127,6 +138,7 @@ function scanSettings() {
 }
 
 async function pdfPagesToImages(file) {
+  if (!pdfjsLib) throw new Error("PDF.js não carregou");
   const data = new Uint8Array(await file.arrayBuffer());
   const pdf = await pdfjsLib.getDocument({ data }).promise;
   const imgs = [];
@@ -154,6 +166,7 @@ async function addImages(files) {
   const list = [...files];
   if (!list.length) return;
   fxShow("Processando arquivos…");
+  try {
   for (const raw of list) {
     const file = readFile(raw, "image");
     if (!file) continue;
@@ -162,22 +175,17 @@ async function addImages(files) {
     const sources = isPdf ? await pdfPagesToImages(file) : [await loadImage(file)];
     for (const img of sources) {
       const canvas = await processPhoto(img, mode, look);
-      let text = "";
-      if (doOcr && window.Tesseract) {
-        fxShow("Lendo texto (OCR)…");
-        try {
-          const res = await Tesseract.recognize(canvas, "por+eng", { logger: () => {} });
-          text = (res.data && res.data.text) || "";
-        } catch {
-          text = "";
-        }
-      }
-      scanPages.push({ img, canvas, name: sanitizeFilename(file.name), text });
+      scanPages.push({ img, canvas, cropMode: mode, name: sanitizeFilename(file.name), text: "" });
     }
     renderScan();
   }
-  fxHide();
   toast("Pronto. Mude recorte ou realce sem enviar de novo.");
+  } catch (err) {
+    console.error(err);
+    toast("Falha ao ler o arquivo. Tente JPEG, PNG, WebP ou PDF.");
+  } finally {
+    fxHide();
+  }
 }
 
 async function reprocessScan() {
@@ -187,12 +195,27 @@ async function reprocessScan() {
   }
   const { mode, look } = scanSettings();
   fxShow("Aplicando na mesma página…");
-  for (const p of scanPages) {
-    p.canvas = await processPhoto(p.img, mode, look);
+  try {
+    for (const p of scanPages) {
+      const needCrop = p.cropMode !== mode || !p.base;
+      if (needCrop) {
+        p.base = await processPhoto(p.img, mode, "original");
+        p.cropMode = mode;
+      }
+      const copy = document.createElement("canvas");
+      copy.width = p.base.width;
+      copy.height = p.base.height;
+      copy.getContext("2d").drawImage(p.base, 0, 0);
+      p.canvas = enhanceDocument(copy, look);
+    }
+    renderScan();
+    toast("Filtro atualizado sem reenviar o arquivo.");
+  } catch (err) {
+    console.error(err);
+    toast("Não deu para aplicar o filtro nesta foto.");
+  } finally {
+    fxHide();
   }
-  renderScan();
-  fxHide();
-  toast("Filtro atualizado sem reenviar o arquivo.");
 }
 $("scan-look").addEventListener("change", reprocessScan);
 $("scan-mode").addEventListener("change", reprocessScan);
@@ -356,8 +379,10 @@ $("merge-export").addEventListener("click", async () => {
 
 /* EDIT */
 let editState = null;
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+if (pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+}
 
 $("edit-file").addEventListener("change", async (e) => {
   const file = readFile(e.target.files[0], "pdf");
@@ -550,7 +575,7 @@ $("merge-print").addEventListener("click", async () => {
   await printPdfBytes(await out.save());
   fxHide();
 });
-$("edit-print").addEventListener("click", async () => {
+on("edit-print", "click", async () => {
   if (!editState) return toast("Abra um PDF.");
   fxShow("Preparando impressão…");
   const { PDFDocument, StandardFonts, rgb, degrees } = PDFLib;
