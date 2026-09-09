@@ -11,39 +11,38 @@ const pdfjsLib = window.pdfjsLib;
 const PDFLib = window.PDFLib;
 
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./sw.js").catch(() => {});
+  navigator.serviceWorker.register("/docscan/sw.js", { scope: "/docscan/" }).catch((err) => console.warn("SW", err));
 }
-const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
 const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
-if (ios && !standalone) {
-  const btn = document.getElementById("install-btn");
-  if (btn) {
-    btn.classList.remove("hide");
-    btn.addEventListener("click", () => {
-      toast("No iPhone: toque em Compartilhar e depois em Adicionar à Tela de Início. O ícone será a logo.");
-    });
-  }
-}
 let deferredInstall = null;
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
   deferredInstall = e;
-  const btn = document.getElementById("install-btn");
-  if (btn) btn.classList.remove("hide");
 });
 window.addEventListener("appinstalled", () => {
   deferredInstall = null;
   const btn = document.getElementById("install-btn");
   if (btn) btn.classList.add("hide");
 });
-document.addEventListener("click", (e) => {
-  if (e.target && e.target.id === "install-btn" && deferredInstall) {
+document.addEventListener("click", async (e) => {
+  if (!e.target || e.target.id !== "install-btn") return;
+  if (standalone) {
+    toast("O DocScan já está instalado.");
+    return;
+  }
+  if (deferredInstall) {
     deferredInstall.prompt();
-    deferredInstall.userChoice.finally(() => {
-      deferredInstall = null;
-      const btn = document.getElementById("install-btn");
-      if (btn) btn.classList.add("hide");
-    });
+    await deferredInstall.userChoice;
+    deferredInstall = null;
+    return;
+  }
+  const ua = navigator.userAgent || "";
+  if (/iphone|ipad|ipod/i.test(ua)) {
+    toast("No Safari: Compartilhar → Adicionar à Tela de Início.");
+  } else if (/android/i.test(ua)) {
+    toast("No Chrome: menu ⋮ → Instalar aplicativo (ou Adicionar à tela inicial).");
+  } else {
+    toast("No Chrome ou Edge: ícone de instalar na barra de endereço, ou menu → Instalar DocScan.");
   }
 });
 
