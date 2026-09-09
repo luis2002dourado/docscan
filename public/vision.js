@@ -794,7 +794,7 @@ export function enhanceDocument(canvas, mode) {
   return canvas;
 }
 
-export async function ensureCv() {
+export async function ensureCv(timeoutMs = 28000) {
   if (typeof window !== "undefined" && window.cv && typeof window.cv.Mat === "function") return window.cv;
   return new Promise((resolve, reject) => {
     const t0 = Date.now();
@@ -802,7 +802,7 @@ export async function ensureCv() {
       if (window.cv && typeof window.cv.Mat === "function") {
         clearInterval(id);
         resolve(window.cv);
-      } else if (Date.now() - t0 > 28000) {
+      } else if (Date.now() - t0 > timeoutMs) {
         clearInterval(id);
         reject(new Error("OpenCV não carregou"));
       }
@@ -934,6 +934,53 @@ export function scanWithOpenCv(cv, srcCanvas) {
   }
 }
 
+// Caminho principal: OpenCV.js real (Canny multi-threshold + adaptiveThreshold + Otsu,
+// findContours/approxPolyDP nativos). Timeout curto (6s) porque o script já é carregado
+// via <script defer> desde o load da página — se não estiver pronto a essa altura,
+// algo impediu o carregamento (offline sem cache, bloqueio de rede) e vale cair pro
+// fallback manual em vez de travar a UI.
+async function cropWithOpenCv(src) {
+  try {
+    const cv = await ensureCv(6000);
+    return scanWithOpenCv(cv, src) || null;
+  } catch {
+    return null;
+  }
+}
+
+// Fallback: detector manual em JS puro (sem OpenCV), usado só quando o pipeline acima
+// não está disponível. Roda a detecção numa versão reduzida da imagem (mais rápido) e
+// aplica a homografia na resolução cheia.
+function cropWithManualDetector(src) {
+  const tryDetect = (longSide) => {
+    try {
+      const small = document.createElement("canvas");
+      const maxSide = Math.max(src.width, src.height, 1);
+      small.width = Math.max(12, Math.round((src.width * longSide) / maxSide));
+      small.height = Math.max(12, Math.round((src.height * longSide) / maxSide));
+      const ctx = ctx2d(small);
+      ctx.drawImage(src, 0, 0, small.width, small.height);
+      const id = ctx.getImageData(0, 0, small.width, small.height);
+      const q = detectDocumentQuad(id, small.width, small.height);
+      if (!q) return null;
+      const sx = src.width / small.width;
+      const sy = src.height / small.height;
+      return orderQuad(q.map((p) => ({ x: p.x * sx, y: p.y * sy })));
+    } catch {
+      return null;
+    }
+  };
+  const found = tryDetect(720) || tryDetect(480);
+  if (!found) return null;
+  const w = Math.round(Math.max(dist(found[0], found[1]), dist(found[3], found[2])));
+  const h = Math.round(Math.max(dist(found[0], found[3]), dist(found[1], found[2])));
+  try {
+    return warpToCanvas(src, found, clamp(w, 400, 1400), clamp(h, 400, 1800));
+  } catch {
+    return cropDraw(src, found);
+  }
+}
+
 export async function processPhoto(img, mode, look) {
   const iw = img.naturalWidth || img.videoWidth || img.width || 0;
   const ih = img.naturalHeight || img.videoHeight || img.height || 0;
@@ -948,34 +995,7 @@ export async function processPhoto(img, mode, look) {
   let work = src;
   const crop = mode === "auto" || mode === "" || mode == null;
   if (crop && src.width > 8 && src.height > 8) {
-    const tryDetect = (longSide) => {
-      try {
-        const small = document.createElement("canvas");
-        const maxSide = Math.max(src.width, src.height, 1);
-        small.width = Math.max(12, Math.round((src.width * longSide) / maxSide));
-        small.height = Math.max(12, Math.round((src.height * longSide) / maxSide));
-        const ctx = ctx2d(small);
-        ctx.drawImage(src, 0, 0, small.width, small.height);
-        const id = ctx.getImageData(0, 0, small.width, small.height);
-        const q = detectDocumentQuad(id, small.width, small.height);
-        if (!q) return null;
-        const sx = src.width / small.width;
-        const sy = src.height / small.height;
-        return orderQuad(q.map((p) => ({ x: p.x * sx, y: p.y * sy })));
-      } catch {
-        return null;
-      }
-    };
-    const found = tryDetect(720) || tryDetect(480);
-    if (found) {
-      const w = Math.round(Math.max(dist(found[0], found[1]), dist(found[3], found[2])));
-      const h = Math.round(Math.max(dist(found[0], found[3]), dist(found[1], found[2])));
-      try {
-        work = warpToCanvas(src, found, clamp(w, 400, 1400), clamp(h, 400, 1800));
-      } catch {
-        work = cropDraw(src, found);
-      }
-    }
+    work = (await cropWithOpenCv(src)) || cropWithManualDetector(src) || src;
   }
   enhanceDocument(work, look || "color_paper");
   return work;

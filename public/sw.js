@@ -1,10 +1,19 @@
-const CACHE = "docscan-v18";
+const CACHE = "docscan-v19";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE).then((cache) =>
-      cache.addAll(["/docscan/", "/docscan/index.html", "/docscan/ds-mark.png", "/docscan/ds-192.png", "/docscan/ds-512.png"]).catch(() => undefined)
+      cache
+        .addAll([
+          "/docscan/",
+          "/docscan/index.html",
+          "/docscan/ds-mark.png",
+          "/docscan/ds-192.png",
+          "/docscan/ds-512.png",
+          "/docscan/opencv.js",
+        ])
+        .catch(() => undefined)
     )
   );
 });
