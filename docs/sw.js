@@ -1,4 +1,4 @@
-const CACHE = "docscan-v14";
+const CACHE = "docscan-v15";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();

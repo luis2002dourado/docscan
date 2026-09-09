@@ -2,10 +2,48 @@ export function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n));
 }
 export function orderQuad(pts) {
-  const sorted = [...pts].sort((a, b) => a.y - b.y);
-  const top = sorted.slice(0, 2).sort((a, b) => a.x - b.x);
-  const bot = sorted.slice(2).sort((a, b) => a.x - b.x);
-  return [top[0], top[1], bot[1], bot[0]];
+  if (!pts || pts.length !== 4) {
+    const sorted = [...(pts || [])].sort((a, b) => a.y - b.y);
+    const top = sorted.slice(0, 2).sort((a, b) => a.x - b.x);
+    const bot = sorted.slice(2).sort((a, b) => a.x - b.x);
+    return [top[0], top[1], bot[1], bot[0]];
+  }
+  let tl = pts[0],
+    tr = pts[0],
+    br = pts[0],
+    bl = pts[0];
+  let minS = Infinity,
+    maxS = -Infinity,
+    minD = Infinity,
+    maxD = -Infinity;
+  for (const p of pts) {
+    const s = p.x + p.y;
+    const d = p.x - p.y;
+    if (s < minS) {
+      minS = s;
+      tl = p;
+    }
+    if (s > maxS) {
+      maxS = s;
+      br = p;
+    }
+    if (d > maxD) {
+      maxD = d;
+      tr = p;
+    }
+    if (d < minD) {
+      minD = d;
+      bl = p;
+    }
+  }
+  const uniq = new Set([tl, tr, br, bl]);
+  if (uniq.size < 4) {
+    const sorted = [...pts].sort((a, b) => a.y - b.y);
+    const top = sorted.slice(0, 2).sort((a, b) => a.x - b.x);
+    const bot = sorted.slice(2).sort((a, b) => a.x - b.x);
+    return [top[0], top[1], bot[1], bot[0]];
+  }
+  return [tl, tr, br, bl];
 }
 export function dist(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
@@ -111,51 +149,139 @@ function ctx2d(canvas) {
   return canvas.getContext("2d", { willReadFrequently: true }) || canvas.getContext("2d");
 }
 
-function contentBox(gray, w, h) {
-  const samples = [];
-  for (let x = 0; x < w; x += 1) {
-    samples.push(gray[x], gray[(h - 1) * w + x]);
+function blurGray(src, w, h) {
+  const tmp = new Float32Array(w * h);
+  const out = new Float32Array(w * h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let s = 0,
+        n = 0;
+      for (let k = -2; k <= 2; k++) {
+        const xx = Math.min(w - 1, Math.max(0, x + k));
+        s += src[y * w + xx];
+        n++;
+      }
+      tmp[y * w + x] = s / n;
+    }
   }
-  for (let y = 0; y < h; y += 1) {
-    samples.push(gray[y * w], gray[y * w + w - 1]);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let s = 0,
+        n = 0;
+      for (let k = -2; k <= 2; k++) {
+        const yy = Math.min(h - 1, Math.max(0, y + k));
+        s += tmp[yy * w + x];
+        n++;
+      }
+      out[y * w + x] = s / n;
+    }
   }
-  samples.sort((a, b) => a - b);
-  const med = samples[samples.length >> 1];
-  const tol = 32;
-  const rowBorder = (y) => {
-    let same = 0;
-    for (let x = 0; x < w; x++) if (Math.abs(gray[y * w + x] - med) < tol) same++;
-    return same / w > 0.7;
-  };
-  const colBorder = (x) => {
-    let same = 0;
-    for (let y = 0; y < h; y++) if (Math.abs(gray[y * w + x] - med) < tol) same++;
-    return same / h > 0.7;
-  };
-  let top = 0;
-  let bot = h - 1;
-  let left = 0;
-  let right = w - 1;
-  while (top < bot - 10 && rowBorder(top)) top++;
-  while (bot > top + 10 && rowBorder(bot)) bot--;
-  while (left < right - 10 && colBorder(left)) left++;
-  while (right > left + 10 && colBorder(right)) right--;
-  if (top < 2 && left < 2 && bot > h - 3 && right > w - 3) return null;
-  const q = orderQuad([
-    { x: left, y: top },
-    { x: right, y: top },
-    { x: right, y: bot },
-    { x: left, y: bot },
-  ]);
-  return isValidQuad(q, w, h) ? q : null;
+  return out;
+}
+
+function periClosed(pts) {
+  let p = 0;
+  for (let i = 0; i < pts.length; i++) p += dist(pts[i], pts[(i + 1) % pts.length]);
+  return p;
+}
+
+function pointLineDist(p, a, b) {
+  const vx = b.x - a.x,
+    vy = b.y - a.y;
+  const len = Math.hypot(vx, vy) || 1;
+  return Math.abs(vy * p.x - vx * p.y + b.x * a.y - b.y * a.x) / len;
+}
+
+function rdp(points, epsilon) {
+  if (points.length < 3) return points;
+  let maxD = 0,
+    idx = 0;
+  const a = points[0],
+    b = points[points.length - 1];
+  for (let i = 1; i < points.length - 1; i++) {
+    const d = pointLineDist(points[i], a, b);
+    if (d > maxD) {
+      maxD = d;
+      idx = i;
+    }
+  }
+  if (maxD > epsilon) {
+    const left = rdp(points.slice(0, idx + 1), epsilon);
+    const right = rdp(points.slice(idx), epsilon);
+    return left.slice(0, -1).concat(right);
+  }
+  return [a, b];
+}
+
+function approxPolyClosed(pts, epsilon) {
+  if (pts.length < 4) return pts;
+  const closed = pts.concat([pts[0]]);
+  const ap = rdp(closed, epsilon);
+  if (ap.length > 1 && dist(ap[0], ap[ap.length - 1]) < 1.5) ap.pop();
+  return ap;
+}
+
+function toFourCorners(hull) {
+  if (!hull || hull.length < 4) return hull;
+  if (hull.length === 4) return hull;
+  const per = periClosed(hull);
+  for (const f of [0.02, 0.015, 0.025, 0.03, 0.04, 0.01, 0.05, 0.08, 0.12]) {
+    const ap = approxPolyClosed(hull, Math.max(1.5, f * per));
+    if (ap.length === 4) return ap;
+  }
+  return approxQuad(hull);
+}
+
+function connectedEdgeComponents(bin, w, h) {
+  const seen = new Uint8Array(w * h);
+  const comps = [];
+  const qx = new Int32Array(w * h);
+  const qy = new Int32Array(w * h);
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const i0 = y * w + x;
+      if (!bin[i0] || seen[i0]) continue;
+      let qs = 0,
+        qe = 0;
+      qx[qe] = x;
+      qy[qe] = y;
+      qe++;
+      seen[i0] = 1;
+      const pts = [];
+      while (qs < qe) {
+        const cx = qx[qs],
+          cy = qy[qs];
+        qs++;
+        pts.push({ x: cx, y: cy });
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = cx + dx,
+              ny = cy + dy;
+            if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+            const ni = ny * w + nx;
+            if (bin[ni] && !seen[ni]) {
+              seen[ni] = 1;
+              qx[qe] = nx;
+              qy[qe] = ny;
+              qe++;
+            }
+          }
+        }
+      }
+      if (pts.length > 50) comps.push(pts);
+    }
+  }
+  comps.sort((a, b) => b.length - a.length);
+  return comps.slice(0, 10);
 }
 
 export function detectDocumentQuad(imageData, w, h) {
-  const gray = new Float32Array(w * h);
+  const gray0 = new Float32Array(w * h);
   const d = imageData.data;
   for (let i = 0, p = 0; i < d.length; i += 4, p++) {
-    gray[p] = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    gray0[p] = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
   }
+  const gray = blurGray(gray0, w, h);
   const mag = new Float32Array(w * h);
   for (let y = 1; y < h - 1; y++) {
     for (let x = 1; x < w - 1; x++) {
@@ -169,65 +295,88 @@ export function detectDocumentQuad(imageData, w, h) {
   }
   let max = 0;
   for (let i = 0; i < mag.length; i++) if (mag[i] > max) max = mag[i];
-
-  const pick = (pts) => {
-    if (!pts || pts.length < 18) return null;
-    const q = orderQuad(approxQuad(convexHull(pts), w, h));
-    if (!isValidQuad(q, w, h) || hugsFrame(q, w, h)) return null;
-    return q;
-  };
-
-  const fromEdges = (thrMul, insetFrac) => {
-    const thr = max * thrMul;
-    if (thr <= 0) return null;
-    const pts = [];
-    const pad = Math.max(2, Math.round(Math.min(w, h) * insetFrac));
-    for (let y = pad; y < h - pad; y += 2) {
-      for (let x = pad; x < w - pad; x += 2) {
-        if (mag[y * w + x] > thr) pts.push({ x, y });
-      }
-    }
-    return pick(pts);
-  };
-
-  let q =
-    contentBox(gray, w, h) ||
-    fromEdges(0.2, 0.03) ||
-    fromEdges(0.14, 0.02) ||
-    fromEdges(0.1, 0.015) ||
-    fromEdges(0.18, 0);
-  if (q) return q;
-
-  const proj = projectionQuad(gray, mag, w, h);
-  if (proj) return proj;
-
-  const otsuT = otsuThreshold(gray);
-  const paper = [];
-  for (let y = 1; y < h - 1; y += 2) {
-    for (let x = 1; x < w - 1; x += 2) {
-      if (gray[y * w + x] >= otsuT) paper.push({ x, y });
+  const hi = max * 0.16;
+  const lo = max * 0.08;
+  const bin = new Uint8Array(w * h);
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const i = y * w + x;
+      if (mag[i] >= hi) bin[i] = 1;
     }
   }
-  q = pick(paper);
-  if (q) return q;
-  if (paper.length > 30) {
-    let minX = w,
-      minY = h,
-      maxX = 0,
-      maxY = 0;
-    for (const p of paper) {
-      if (p.x < minX) minX = p.x;
-      if (p.y < minY) minY = p.y;
-      if (p.x > maxX) maxX = p.x;
-      if (p.y > maxY) maxY = p.y;
+  for (let y = 2; y < h - 2; y++) {
+    for (let x = 2; x < w - 2; x++) {
+      const i = y * w + x;
+      if (bin[i] || mag[i] < lo) continue;
+      if (
+        bin[i - 1] ||
+        bin[i + 1] ||
+        bin[i - w] ||
+        bin[i + w] ||
+        bin[i - w - 1] ||
+        bin[i - w + 1] ||
+        bin[i + w - 1] ||
+        bin[i + w + 1]
+      )
+        bin[i] = 1;
     }
-    const box = orderQuad([
-      { x: minX, y: minY },
-      { x: maxX, y: minY },
-      { x: maxX, y: maxY },
-      { x: minX, y: maxY },
-    ]);
-    if (isValidQuad(box, w, h) && !hugsFrame(box, w, h)) return box;
+  }
+  const dil = new Uint8Array(w * h);
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      let on = 0;
+      for (let dy = -1; dy <= 1 && !on; dy++)
+        for (let dx = -1; dx <= 1; dx++) if (bin[(y + dy) * w + (x + dx)]) on = 1;
+      dil[y * w + x] = on;
+    }
+  }
+
+  const scoreQ = (q) => {
+    if (!isValidQuad(q, w, h) || hugsFrame(q, w, h)) return -1;
+    const r = rectScore(q);
+    if (r < 0.35) return -1;
+    return quadArea(q) * (0.4 + 0.6 * r);
+  };
+
+  let best = null;
+  let bestS = -1;
+  const comps = connectedEdgeComponents(dil, w, h);
+  for (const pts of comps) {
+    const hull = convexHull(pts);
+    if (hull.length < 4) continue;
+    const four = toFourCorners(hull);
+    if (!four || four.length !== 4) continue;
+    const q = orderQuad(four);
+    const s = scoreQ(q);
+    if (s > bestS) {
+      bestS = s;
+      best = q;
+    }
+  }
+  if (best) return best;
+
+  const edgePts = [];
+  const pad = Math.max(2, Math.round(Math.min(w, h) * 0.02));
+  for (let y = pad; y < h - pad; y += 1) {
+    for (let x = pad; x < w - pad; x += 1) {
+      if (dil[y * w + x]) edgePts.push({ x, y });
+    }
+  }
+  if (edgePts.length > 24) {
+    const q = orderQuad(toFourCorners(convexHull(edgePts)));
+    if (scoreQ(q) > 0) return q;
+  }
+
+  const otsuT = otsuThreshold(gray0);
+  const paper = [];
+  for (let y = 1; y < h - 1; y += 1) {
+    for (let x = 1; x < w - 1; x += 1) {
+      if (gray0[y * w + x] >= otsuT) paper.push({ x, y });
+    }
+  }
+  if (paper.length > 80) {
+    const q = orderQuad(toFourCorners(convexHull(paper)));
+    if (scoreQ(q) > 0) return q;
   }
   return null;
 }
@@ -387,16 +536,14 @@ function cropDraw(srcCanvas, quad) {
 }
 
 export function warpToCanvas(srcCanvas, quad, outW, outH) {
-  if (axisAligned(quad, Math.max(4, Math.min(srcCanvas.width, srcCanvas.height) * 0.02))) {
-    return cropDraw(srcCanvas, quad);
-  }
+  const corners = orderQuad(quad);
   const dst = [
     { x: 0, y: 0 },
     { x: outW - 1, y: 0 },
     { x: outW - 1, y: outH - 1 },
     { x: 0, y: outH - 1 },
   ];
-  const h = solveHomography(dst, quad);
+  const h = solveHomography(dst, corners);
   const out = document.createElement("canvas");
   out.width = outW;
   out.height = outH;
@@ -533,12 +680,13 @@ export async function processPhoto(img, mode, look) {
         return null;
       }
     };
-    const quad = tryDetect(480) || tryDetect(320);
-    if (quad) {
+    const found = tryDetect(640) || tryDetect(420);
+    if (found) {
+      const quad = orderQuad(found);
       const w = Math.round(Math.max(dist(quad[0], quad[1]), dist(quad[3], quad[2])));
       const h = Math.round(Math.max(dist(quad[0], quad[3]), dist(quad[1], quad[2])));
       try {
-        work = warpToCanvas(src, quad, clamp(w, 280, 1200), clamp(h, 280, 1600));
+        work = warpToCanvas(src, quad, clamp(w, 400, 1400), clamp(h, 400, 1800));
       } catch {
         work = cropDraw(src, quad);
       }
