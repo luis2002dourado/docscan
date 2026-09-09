@@ -76,8 +76,18 @@ body {
 }
 .mark { display: flex; gap: 10px; align-items: center; font-weight: 700; color: var(--baltic); text-decoration: none; }
 .logo {
-  width: 44px; height: 44px; object-fit: cover; border-radius: 50%;
-  display: block; background: #05668d;
+  width: 44px; height: 44px; border-radius: 50%; display: block; flex-shrink: 0;
+}
+.brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+.by { font-size: 11px; font-weight: 500; color: var(--teal); }
+.credit {
+  text-align: center;
+  font-size: 12px;
+  color: var(--teal);
+  padding: 16px 16px 28px;
+  margin: 0;
+  border-top: 1px solid var(--line);
+  background: var(--paper);
 }
 .top nav { display: flex; gap: 18px; }
 .top nav a { color: var(--teal); text-decoration: none; font-size: 14px; transition: color 0.2s; }
@@ -152,13 +162,6 @@ body {
   border-color: var(--teal);
 }
 .apply { margin-top: 8px; width: 100%; max-width: 280px; }
-.credit {
-  text-align: center;
-  font-size: 12px;
-  color: var(--teal);
-  padding: 8px 16px 24px;
-  margin: 0;
-}
 .work-head h2 { font-family: "Source Serif 4", serif; font-size: clamp(26px, 5vw, 36px); margin-bottom: 6px; color: var(--baltic); }
 .tabs { display: flex; gap: 8px; margin: 18px 0; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
 .tab, .chip, select, input[type="number"], input[type="text"], #text-content {
@@ -334,32 +337,6 @@ body {
 .note { color: var(--teal); font-size: 14px; }
 .sr-only {
   position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0);
-}
-.adjust {
-  background: var(--paper);
-  border: 2px solid var(--mint);
-  border-radius: 18px;
-  padding: 18px 16px 20px;
-  margin: 0 0 18px;
-}
-.adjust h3 { margin: 14px 0 4px; color: var(--baltic); font-size: 18px; }
-.adjust h3:first-child { margin-top: 0; }
-.looks { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 6px; }
-.look {
-  border: 2px solid var(--line);
-  background: #fff;
-  color: var(--ink);
-  border-radius: 12px;
-  padding: 10px 12px;
-  cursor: pointer;
-  font: inherit;
-  font-weight: 600;
-  min-height: 44px;
-}
-.look.on {
-  background: linear-gradient(90deg, var(--teal), var(--mint));
-  color: #fff;
-  border-color: transparent;
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

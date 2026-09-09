@@ -16,7 +16,18 @@
 </head>
 <body class="tool-only">
   <header class="top">
-    <span class="mark"><img class="logo" src="ds-mark.png" alt="DocScan" width="48" height="48" /> DocScan</span>
+    <span class="mark">
+      <svg class="logo" viewBox="0 0 100 100" width="48" height="48" aria-hidden="true">
+        <circle cx="50" cy="50" r="50" fill="#05668d"/>
+        <circle cx="50" cy="50" r="38" fill="#045a7a"/>
+        <path d="M28 32h12v4H32v10h-4V32zm32 0h12v14h-4V36H60v-4zM28 64h4v10h8v4H28V64zm32 10v4h12V64h-4v10H60z" fill="#02c39a"/>
+        <rect x="36" y="34" width="28" height="34" rx="5" transform="rotate(-12 50 51)" fill="#f0f3bd"/>
+        <rect x="42" y="42" width="16" height="3.2" rx="1.5" transform="rotate(-12 50 44)" fill="#02c39a"/>
+        <rect x="42" y="48" width="16" height="3.2" rx="1.5" transform="rotate(-12 50 50)" fill="#02c39a"/>
+        <rect x="42" y="54" width="16" height="3.2" rx="1.5" transform="rotate(-12 50 56)" fill="#02c39a"/>
+      </svg>
+      <span class="brand-text">DocScan<span class="by">criado e desenvolvido por Luis Fernando</span></span>
+    </span>
     <button class="chip green" id="install-btn" type="button">Instalar aplicativo</button>
   </header>
 
@@ -106,7 +117,7 @@
       <div id="edit-grid" class="grid"></div>
     </div>
   </main>
-  <p class="credit">DocScan · criado e desenvolvido por Luis Fernando</p>
+  <footer class="credit">© DocScan · criado e desenvolvido por Luis Fernando. Todos os direitos reservados.</footer>
 
   <div id="modal" class="modal hide">
     <div class="sheet">

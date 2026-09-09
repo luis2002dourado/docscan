@@ -11,6 +11,9 @@ const pdfjsLib = window.pdfjsLib;
 const PDFLib = window.PDFLib;
 
 if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then((regs) => {
+    regs.forEach((r) => r.update());
+  });
   navigator.serviceWorker.register("/docscan/sw.js", { scope: "/docscan/" }).catch((err) => console.warn("SW", err));
 }
 const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
