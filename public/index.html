@@ -9,10 +9,10 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="DocScan" />
-  <link rel="manifest" href="/docscan/manifest.json" />
-  <link rel="apple-touch-icon" href="/docscan/ds-192.png" />
-  <link rel="icon" type="image/png" sizes="192x192" href="/docscan/ds-192.png" />
-  <link rel="stylesheet" href="styles.css?v=18" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="ds-192.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="ds-192.png" />
+  <link rel="stylesheet" href="styles.css?v=21" />
 </head>
 <body class="tool-only">
   <header class="top">
@@ -138,6 +138,18 @@
       </div>
     </div>
   </div>
+  <div id="corner-modal" class="modal hide" role="dialog" aria-modal="true" aria-labelledby="corner-title">
+    <div class="sheet corner-sheet">
+      <h3 id="corner-title">Ajustar os quatro cantos</h3>
+      <p class="note">Arraste cada ponto até o canto da folha. Mantenha as linhas ao redor do documento.</p>
+      <canvas id="corner-canvas" aria-label="Prévia para ajustar os cantos do documento"></canvas>
+      <div class="actions">
+        <button id="corner-cancel" class="chip ghost" type="button">Cancelar</button>
+        <button id="corner-auto" class="chip" type="button">Detectar novamente</button>
+        <button id="corner-save" class="chip green" type="button">Aplicar recorte</button>
+      </div>
+    </div>
+  </div>
   <div id="name-modal" class="modal hide">
     <div class="sheet">
       <h3>Como vai se chamar o PDF?</h3>
@@ -160,11 +172,9 @@
     </div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="vendor/pdf.min.js"></script>
+  <script src="vendor/pdf-lib.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <!-- Auto-hospedado (não CDN) para funcionar offline via sw.js. ~10MB, carrega em paralelo (defer). -->
-  <script src="opencv.js?v=1" defer></script>
-  <script type="module" src="app.js?v=20"></script>
+  <script type="module" src="app.js?v=21"></script>
 </body>
 </html>

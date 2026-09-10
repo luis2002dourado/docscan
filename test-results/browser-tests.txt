@@ -1,0 +1,8 @@
+test.normalized.png detected 498 492
+test2.normalized.png detected 815 901
+test3.normalized.png detected 657 735
+test4.normalized.png review 1022 781
+test5.normalized.png detected 835 338
+test6.normalized.png review 623 830
+UI crop passed true
+UI regression passed

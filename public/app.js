@@ -5,7 +5,8 @@ import {
   escapeText,
   processPhoto,
   enhanceDocument,
-} from "./vision.js?v=2";
+  isValidQuad,
+} from "./vision.js";
 
 const pdfjsLib = window.pdfjsLib;
 const PDFLib = window.PDFLib;
@@ -14,7 +15,7 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.getRegistrations().then((regs) => {
     regs.forEach((r) => r.update());
   });
-  navigator.serviceWorker.register("/docscan/sw.js", { scope: "/docscan/" }).catch((err) => console.warn("SW", err));
+  navigator.serviceWorker.register(new URL("./sw.js", import.meta.url)).catch((err) => console.warn("SW", err));
 }
 const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
 let deferredInstall = null;
@@ -71,11 +72,14 @@ const toast = (m) => {
   setTimeout(() => t.classList.add("hide"), 2400);
 };
 
+let scanBusy = false;
 function fxShow(msg) {
+  scanBusy = true;
   $("fx-msg").textContent = msg;
   $("fx").classList.remove("hide");
 }
 function fxHide() {
+  scanBusy = false;
   $("fx").classList.add("hide");
 }
 function burst(x, y) {
@@ -234,7 +238,7 @@ function thumbData(img) {
 
 async function addImages(files) {
   const list = [...files];
-  if (!list.length) return;
+  if (!list.length || scanBusy) return;
   fxShow("Lendo arquivos…");
   try {
     for (const raw of list) {
@@ -287,18 +291,17 @@ function updateQueue() {
     const src = p.preview || (p.img && p.img.src) || "";
     card.innerHTML =
       `<div class="thumb"><img alt="Prévia ${i + 1}" src="${src}"></div>` +
-      `<div class="meta"><span>Fila ${i + 1}</span><button type="button" data-qrm="${i}">✕</button></div>`;
+      `<div class="meta"><span>Fila ${i + 1}</span><button type="button" data-corners="${i}">Ajustar cantos</button><button type="button" data-qrm="${i}">✕</button></div>`;
     box.appendChild(card);
   });
 }
 
 function nextPaint() {
-  // Um único rAF só garante "antes do próximo frame". Dois seguidos garantem que o
-  // frame anterior (com o popup já visível) foi de fato pintado antes de continuarmos.
-  return new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 }
 
 async function reprocessScan() {
+  if (scanBusy) return;
   if (!scanPages.length) {
     toast("Envie um arquivo primeiro.");
     return;
@@ -311,7 +314,9 @@ async function reprocessScan() {
     for (let i = 0; i < scanPages.length; i++) {
       const p = scanPages[i];
       if (scanPages.length > 1) fxShow(`Recortando e endireitando (${i + 1}/${scanPages.length})…`);
-      p.base = await processPhoto(p.img, mode, "original");
+      p.text = "";
+      if (!p.base || p.cropMode !== mode) p.base = await processPhoto(p.img, mode, "original", p.manual);
+      p.scanInfo = p.base.scanInfo;
       p.cropMode = mode;
       const copy = document.createElement("canvas");
       copy.width = p.base.width;
@@ -329,10 +334,11 @@ async function reprocessScan() {
       await nextPaint();
     }
     renderScan();
-    toast("Pronto. Confira o resultado abaixo.");
+    const missed = scanPages.filter(p => p.scanInfo?.status === "not-found").length;
+    toast(missed ? `${missed} página(s) sem recorte seguro. Use Ajustar cantos.` : "Pronto. Confira o resultado abaixo.");
   } catch (err) {
     console.error(err);
-    toast("Não deu para aplicar o filtro.");
+    toast(err.message || "Não deu para aplicar o filtro.");
   } finally {
     fxHide();
   }
@@ -355,7 +361,7 @@ document.getElementById("look-btns").addEventListener("click", (e) => {
 on("scan-apply", "click", () => reprocessScan());
 document.addEventListener("click", (e) => {
   const t = e.target;
-  if (!t || !t.dataset || t.dataset.qrm === undefined) return;
+  if (scanBusy || !t || !t.dataset || t.dataset.qrm === undefined) return;
   if (!t.closest("#scan-preview")) return;
   scanPages.splice(Number(t.dataset.qrm), 1);
   updateQueue();
@@ -379,6 +385,7 @@ function renderScan() {
           <button type="button" data-rm="${i}">✕</button>
         </span>
       </div>
+      <p class="note crop-status">${p.scanInfo?.status === "not-found" ? "Folha não identificada. Foto inteira preservada; ajuste os cantos." : p.scanInfo?.status === "review" ? "Recorte estimado. Confira e ajuste os cantos antes de exportar." : p.scanInfo?.status === "manual" ? "Recorte ajustado manualmente." : p.scanInfo?.status === "detected" ? "Perspectiva corrigida. Confira as bordas." : "Foto inteira."}</p>
       ${p.text ? `<div class="ocr">${escapeText(p.text)}</div>` : ""}`;
     card.style.animationDelay = i * 70 + "ms";
     card.querySelector(".thumb").appendChild(p.canvas);
@@ -395,6 +402,7 @@ $("scan-cam").addEventListener("change", (e) => {
   e.target.value = "";
 });
 $("scan-grid").addEventListener("click", (e) => {
+  if (scanBusy) return;
   const up = e.target.dataset.up;
   const dn = e.target.dataset.dn;
   const rm = e.target.dataset.rm;
@@ -410,6 +418,7 @@ $("scan-grid").addEventListener("click", (e) => {
   if (up || dn || rm) renderScan();
 });
 $("scan-clear").addEventListener("click", () => {
+  if (scanBusy) return;
   scanPages.length = 0;
   renderScan();
 });
@@ -515,7 +524,7 @@ $("merge-export").addEventListener("click", async () => {
 let editState = null;
 if (pdfjsLib) {
   pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    new URL("./vendor/pdf.worker.min.js", import.meta.url).href;
 }
 
 $("edit-file").addEventListener("change", async (e) => {
@@ -646,7 +655,7 @@ $("edit-export").addEventListener("click", async () => {
       });
     out.addPage(page);
   });
-  await downloadPdf(out, "editado.pdf");
+  await downloadPdf(out, nome);
   fxHide();
 });
 
@@ -732,7 +741,7 @@ async function printPdfBytes(bytes) {
 }
 
 $("scan-print").addEventListener("click", () => {
-  printCanvases(scanPages.map((p) => p.canvas));
+  printCanvases(scanPages.map((p) => p.canvas).filter(Boolean));
 });
 $("merge-print").addEventListener("click", async () => {
   if (!mergeItems.length) return toast("Adicione PDFs.");
@@ -777,3 +786,52 @@ on("edit-print", "click", async () => {
   fxHide();
 });
 
+
+// Explicit corner review also handles low contrast, shadows and clipped documents.
+let cornerPage=null,cornerPoints=[],dragCorner=-1;
+const cornerCanvas=$("corner-canvas");
+function drawCorners() {
+  const ctx=cornerCanvas.getContext('2d');
+  ctx.clearRect(0,0,cornerCanvas.width,cornerCanvas.height);
+  ctx.drawImage(cornerPage.img,0,0,cornerCanvas.width,cornerCanvas.height);
+  ctx.strokeStyle='#00e6ad';ctx.lineWidth=3;ctx.fillStyle='rgba(0,230,173,0.12)';
+  ctx.beginPath();cornerPoints.forEach((p,i)=>ctx[i?'lineTo':'moveTo'](p.x*(cornerCanvas.width-1),p.y*(cornerCanvas.height-1)));ctx.closePath();ctx.fill();ctx.stroke();
+  cornerPoints.forEach((p,i)=>{
+    const x=p.x*(cornerCanvas.width-1),y=p.y*(cornerCanvas.height-1);
+    ctx.beginPath();ctx.arc(x,y,13,0,Math.PI*2);ctx.fillStyle='#05668d';ctx.fill();ctx.stroke();
+    ctx.fillStyle='white';ctx.font='bold 14px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(i+1,x,y);
+  });
+}
+document.addEventListener('click',e=>{
+  const button=e.target.closest('[data-corners]');if(!button||scanBusy)return;
+  cornerPage=scanPages[Number(button.dataset.corners)];
+  const w=cornerPage.img.naturalWidth||cornerPage.img.width,h=cornerPage.img.naturalHeight||cornerPage.img.height;
+  const scale=Math.min(1,850/Math.max(w,h));cornerCanvas.width=Math.round(w*scale);cornerCanvas.height=Math.round(h*scale);
+  cornerPoints=(cornerPage.manual||cornerPage.scanInfo?.quad||[{x:.05,y:.05},{x:.95,y:.05},{x:.95,y:.95},{x:.05,y:.95}]).map(p=>({...p}));
+  $('corner-modal').classList.remove('hide');drawCorners();$('corner-save').focus();
+});
+function pointerCorner(e) {
+  const r=cornerCanvas.getBoundingClientRect();return {x:Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),y:Math.max(0,Math.min(1,(e.clientY-r.top)/r.height))};
+}
+cornerCanvas.addEventListener('pointerdown',e=>{
+  e.preventDefault();const p=pointerCorner(e),r=cornerCanvas.getBoundingClientRect();
+  const distances=cornerPoints.map(q=>Math.hypot((q.x-p.x)*r.width,(q.y-p.y)*r.height));
+  dragCorner=distances.indexOf(Math.min(...distances));
+  if(distances[dragCorner]>44){dragCorner=-1;return;}
+  cornerCanvas.setPointerCapture(e.pointerId);
+});
+cornerCanvas.addEventListener('pointermove',e=>{if(dragCorner<0)return;cornerPoints[dragCorner]=pointerCorner(e);drawCorners();});
+for(const name of ['pointerup','pointercancel','lostpointercapture'])cornerCanvas.addEventListener(name,()=>{dragCorner=-1;});
+$('corner-cancel').addEventListener('click',()=>{$('corner-modal').classList.add('hide');cornerPage=null;});
+$('corner-auto').addEventListener('click',()=>{
+  cornerPage.manual=null;cornerPage.base=null;cornerPage.canvas=null;cornerPage.scanInfo=null;
+  $('corner-modal').classList.add('hide');cornerPage=null;renderScan();
+  document.querySelector('[data-mode="auto"]').click();reprocessScan();
+});
+$('corner-save').addEventListener('click',()=>{
+  const q=cornerPoints.map(p=>({x:p.x*999,y:p.y*999}));
+  if(!isValidQuad(q,1000,1000)){toast('Os cantos precisam contornar a folha sem cruzar as bordas.');return;}
+  cornerPage.manual=cornerPoints.map(p=>({...p}));cornerPage.base=null;cornerPage.canvas=null;
+  $('corner-modal').classList.add('hide');cornerPage=null;renderScan();
+  document.querySelector('[data-mode="auto"]').click();reprocessScan();
+});

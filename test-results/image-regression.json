@@ -1,0 +1,90 @@
+[
+  {
+    "name": "frontal",
+    "status": "detected",
+    "maxCornerErrorPx": 0,
+    "legacyMaxCornerErrorPx": 0,
+    "ms": 576,
+    "pass": true
+  },
+  {
+    "name": "trapezio",
+    "status": "detected",
+    "maxCornerErrorPx": 1.4142135623730951,
+    "legacyMaxCornerErrorPx": 1.4142135623730951,
+    "ms": 710,
+    "pass": true
+  },
+  {
+    "name": "perspectiva_forte",
+    "status": "detected",
+    "maxCornerErrorPx": 7.810249675906656,
+    "legacyMaxCornerErrorPx": null,
+    "ms": 716,
+    "pass": true
+  },
+  {
+    "name": "rotacao",
+    "status": "detected",
+    "maxCornerErrorPx": 1.4142135623730951,
+    "legacyMaxCornerErrorPx": 7.300439769427416,
+    "ms": 734,
+    "pass": true
+  },
+  {
+    "name": "lado",
+    "status": "detected",
+    "maxCornerErrorPx": 1.4142135623730951,
+    "legacyMaxCornerErrorPx": 1,
+    "ms": 698,
+    "pass": true
+  },
+  {
+    "name": "sombra",
+    "status": "detected",
+    "maxCornerErrorPx": 0,
+    "legacyMaxCornerErrorPx": 0,
+    "ms": 781,
+    "pass": true
+  },
+  {
+    "name": "fundo_textura",
+    "status": "detected",
+    "maxCornerErrorPx": 0,
+    "legacyMaxCornerErrorPx": 0,
+    "ms": 773,
+    "pass": true
+  },
+  {
+    "name": "baixo_contraste",
+    "status": "detected",
+    "maxCornerErrorPx": 0,
+    "legacyMaxCornerErrorPx": 5.674164638016526,
+    "ms": 751,
+    "pass": true
+  },
+  {
+    "name": "desfoque",
+    "status": "detected",
+    "maxCornerErrorPx": 1.4142135623730951,
+    "legacyMaxCornerErrorPx": 3.6055512754639896,
+    "ms": 693,
+    "pass": true
+  },
+  {
+    "name": "paisagem",
+    "status": "detected",
+    "maxCornerErrorPx": 1.4142135623730951,
+    "legacyMaxCornerErrorPx": 0,
+    "ms": 686,
+    "pass": true
+  },
+  {
+    "name": "sem_documento",
+    "status": "not-found",
+    "maxCornerErrorPx": null,
+    "legacyMaxCornerErrorPx": null,
+    "ms": 663,
+    "pass": true
+  }
+]
