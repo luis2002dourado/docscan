@@ -5,7 +5,7 @@ import {
   escapeText,
   processPhoto,
   enhanceDocument,
-} from "./vision.js";
+} from "./vision.js?v=2";
 
 const pdfjsLib = window.pdfjsLib;
 const PDFLib = window.PDFLib;
