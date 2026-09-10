@@ -3,26 +3,26 @@ npm warn Unknown env config "http-proxy". This will stop working in the next maj
 > docscan@1.1.0 test
 > node --test tests/*.test.js
 
-✔ clamp limita valores (0.735324ms)
-✔ orderQuad organiza cantos (0.85199ms)
-✔ isValidQuad rejeita área pequena (0.577347ms)
-✔ homografia identidade (0.477397ms)
-✔ allowedFile bloqueia executáveis (0.248844ms)
-✔ sanitize e escape anti-XSS (0.201653ms)
-✔ perspectiva forte: quatro cantos distintos e ordem cíclica (1.543769ms)
-✔ homografia leva cada canto a um canto do retângulo (0.374092ms)
-✔ recorte manual rejeita cantos cruzados, repetidos e fora da imagem (0.14618ms)
-✔ homografia degenerada falha explicitamente (0.370917ms)
-✔ headers de segurança presentes (719.768783ms)
-✔ POST é recusado — API não armazena (4.605113ms)
-✔ health não expõe armazenamento (7.724295ms)
-✔ não há x-powered-by (5.849308ms)
-✔ worker OpenCV isolado e interface sem unsafe-eval (7.538456ms)
-✔ interface tem as três ferramentas (0.809025ms)
-✔ estilo Evernote: serif + verde (0.187792ms)
-✔ movimento 3d e pointer (0.206851ms)
-✔ sessão não persiste (0.189084ms)
-✔ OCR e sanitização na UI (0.203426ms)
+✔ clamp limita valores (2.102962ms)
+✔ orderQuad organiza cantos (2.016065ms)
+✔ isValidQuad rejeita área pequena (1.031974ms)
+✔ homografia identidade (1.3617ms)
+✔ allowedFile bloqueia executáveis (0.766482ms)
+✔ sanitize e escape anti-XSS (0.749084ms)
+✔ perspectiva forte: quatro cantos distintos e ordem cíclica (4.967845ms)
+✔ homografia leva cada canto a um canto do retângulo (1.653564ms)
+✔ recorte manual rejeita cantos cruzados, repetidos e fora da imagem (0.698271ms)
+✔ homografia degenerada falha explicitamente (1.69896ms)
+✔ headers de segurança presentes (758.916755ms)
+✔ POST é recusado — API não armazena (7.638154ms)
+✔ health não expõe armazenamento (9.426576ms)
+✔ não há x-powered-by (7.222722ms)
+✔ worker OpenCV isolado e interface sem unsafe-eval (10.960724ms)
+✔ interface tem as três ferramentas (2.292989ms)
+✔ estilo Evernote: serif + verde (0.580685ms)
+✔ movimento 3d e pointer (0.371453ms)
+✔ sessão não persiste (0.40536ms)
+✔ OCR e sanitização na UI (0.35081ms)
 ℹ tests 20
 ℹ suites 0
 ℹ pass 20
@@ -30,4 +30,4 @@ npm warn Unknown env config "http-proxy". This will stop working in the next maj
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 851.949723
+ℹ duration_ms 1355.793261

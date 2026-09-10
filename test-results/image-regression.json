@@ -4,7 +4,7 @@
     "status": "detected",
     "maxCornerErrorPx": 0,
     "legacyMaxCornerErrorPx": 0,
-    "ms": 576,
+    "ms": 1038,
     "pass": true
   },
   {
@@ -12,7 +12,7 @@
     "status": "detected",
     "maxCornerErrorPx": 1.4142135623730951,
     "legacyMaxCornerErrorPx": 1.4142135623730951,
-    "ms": 710,
+    "ms": 1099,
     "pass": true
   },
   {
@@ -20,7 +20,7 @@
     "status": "detected",
     "maxCornerErrorPx": 7.810249675906656,
     "legacyMaxCornerErrorPx": null,
-    "ms": 716,
+    "ms": 1145,
     "pass": true
   },
   {
@@ -28,7 +28,7 @@
     "status": "detected",
     "maxCornerErrorPx": 1.4142135623730951,
     "legacyMaxCornerErrorPx": 7.300439769427416,
-    "ms": 734,
+    "ms": 1065,
     "pass": true
   },
   {
@@ -36,7 +36,7 @@
     "status": "detected",
     "maxCornerErrorPx": 1.4142135623730951,
     "legacyMaxCornerErrorPx": 1,
-    "ms": 698,
+    "ms": 1166,
     "pass": true
   },
   {
@@ -44,7 +44,7 @@
     "status": "detected",
     "maxCornerErrorPx": 0,
     "legacyMaxCornerErrorPx": 0,
-    "ms": 781,
+    "ms": 1054,
     "pass": true
   },
   {
@@ -52,7 +52,7 @@
     "status": "detected",
     "maxCornerErrorPx": 0,
     "legacyMaxCornerErrorPx": 0,
-    "ms": 773,
+    "ms": 1160,
     "pass": true
   },
   {
@@ -60,7 +60,7 @@
     "status": "detected",
     "maxCornerErrorPx": 0,
     "legacyMaxCornerErrorPx": 5.674164638016526,
-    "ms": 751,
+    "ms": 992,
     "pass": true
   },
   {
@@ -68,7 +68,7 @@
     "status": "detected",
     "maxCornerErrorPx": 1.4142135623730951,
     "legacyMaxCornerErrorPx": 3.6055512754639896,
-    "ms": 693,
+    "ms": 1011,
     "pass": true
   },
   {
@@ -76,7 +76,7 @@
     "status": "detected",
     "maxCornerErrorPx": 1.4142135623730951,
     "legacyMaxCornerErrorPx": 0,
-    "ms": 686,
+    "ms": 1012,
     "pass": true
   },
   {
@@ -84,7 +84,7 @@
     "status": "not-found",
     "maxCornerErrorPx": null,
     "legacyMaxCornerErrorPx": null,
-    "ms": 663,
+    "ms": 1008,
     "pass": true
   }
 ]

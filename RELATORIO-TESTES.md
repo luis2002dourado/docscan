@@ -44,3 +44,8 @@ Comandos e dependências estão no README. Resultados detalhados ficam nos JSONs
 - Fotografias: https://github.com/ColonelParrot/jscanify/tree/master/docs/images/test — arquivos `test.png`, `test2.png`, `test3.jpg`, `test4.JPG`, `test5.JPG`, `test6.JPG`. Cópias originais e versões normalizadas para 1200 px incluídas; licença MIT do projeto preservada em `tests/fixtures/JSCANIFY-LICENSE.txt`.
 - PDF.js 3.11.174 e pdf-lib 1.17.1: versões previamente usadas pelo aplicativo, agora incluídas com as respectivas licenças.
 - O arquivo `tests/legacy-vision.mjs` é a versão original recebida, preservada exclusivamente para comparação.
+
+
+## Validação final para publicação
+
+Os arquivos da interface e do servidor foram reconciliados antes da publicação. Foram repetidos os 20 testes de código, os 11 cenários de imagem e o fluxo de navegador completo. A publicação usa cache `docscan-v21`, preservando as melhorias recentes de progresso por página.

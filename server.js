@@ -45,13 +45,16 @@ app.use((req, res, next) => {
       "frame-ancestors 'none'",
     ].join("; ")
   );
+  if (req.path.endsWith("/scanner-worker.js")) {
+    res.setHeader("Content-Security-Policy", "default-src 'none'; script-src 'self' 'unsafe-eval'; connect-src 'none'; worker-src 'none'");
+  }
   if (req.method !== "GET" && req.method !== "HEAD") {
     return res.status(405).json({ error: "Método não permitido. Este site não armazena dados." });
   }
   next();
 });
 
-app.use(
+app.use(["/docscan", "/"],
   express.static(path.join(__dirname, "public"), {
     etag: false,
     lastModified: false,

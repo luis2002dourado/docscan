@@ -4,7 +4,7 @@ Digitalize documentos, una e edite PDFs no navegador. Processamento local, sem e
 
 ## Atualização
 
-Para GitHub Pages, substitua a pasta `docs` inteira pela pasta deste pacote, incluindo `vendor`. A estrutura pública permanece compatível com `/docscan/`. Depois da publicação, feche e abra o aplicativo para carregar a versão 21 do cache. Este pacote não foi publicado automaticamente.
+Para GitHub Pages, substitua a pasta `docs` inteira pela pasta deste pacote, incluindo `vendor`. A estrutura pública permanece compatível com `/docscan/`. Depois da publicação, feche e abra o aplicativo para carregar a versão 21 do cache.
 
 Para o servidor Node:
 
