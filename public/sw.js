@@ -1,6 +1,6 @@
-const CACHE='docscan-v21';
+const CACHE='docscan-v22';
 const base=new URL('./',self.location.href);
-const assets=['./','index.html','styles.css?v=21','app.js?v=21','vision.js','scanner-core.js','scanner-worker.js','vendor/opencv-4.10.0.js','vendor/pdf.min.js','vendor/pdf.worker.min.js','vendor/pdf-lib.min.js','manifest.json','ds-192.png','ds-512.png'].map(p=>new URL(p,base).href);
+const assets=['./','index.html','styles.css?v=22','app.js?v=22','vision.js','scanner-core.js','scanner-worker.js','vendor/opencv-4.10.0.js','vendor/pdf.min.js','vendor/pdf.worker.min.js','vendor/pdf-lib.min.js','manifest.json','ds-192.png','ds-512.png'].map(p=>new URL(p,base).href);
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(assets)));self.skipWaiting();});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('docscan-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
 self.addEventListener('fetch',event=>{

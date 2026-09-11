@@ -1,16 +1,16 @@
 :root {
-  --baltic: #05668d;
-  --teal: #028090;
-  --verdigris: #00a896;
-  --mint: #02c39a;
-  --cream: #f0f3bd;
-  --paper: #f7f9d8;
-  --ink: #04344a;
-  --mute: #05668d;
-  --green: #02c39a;
-  --green-d: #00a896;
-  --line: #cde8d4;
-  --shadow: 0 22px 50px rgba(5, 102, 141, 0.18);
+  --baltic: #FFBE0B;
+  --teal: #EBC766;
+  --verdigris: #D99E00;
+  --mint: #FFBE0B;
+  --cream: #2A2312;
+  --paper: #352D1B;
+  --ink: #FFF5D6;
+  --mute: #FFBE0B;
+  --green: #FFBE0B;
+  --green-d: #D99E00;
+  --line: #68572C;
+  --shadow: 0 22px 50px rgba(0, 0, 0, 0.24);
   font-family: Inter, system-ui, sans-serif;
   color: var(--ink);
   background: var(--cream);
@@ -22,8 +22,8 @@ body {
   margin: 0;
   min-width: 0;
   background:
-    radial-gradient(900px 500px at 0% -10%, #02c39a33, transparent),
-    radial-gradient(800px 400px at 100% 0%, #05668d22, transparent),
+    radial-gradient(900px 500px at 0% -10%, #FFBE0B33, transparent),
+    radial-gradient(800px 400px at 100% 0%, #FFBE0B22, transparent),
     var(--cream);
   overflow-x: hidden;
 }
@@ -40,7 +40,7 @@ body {
   to { opacity: 1; transform: none; }
 }
 @keyframes pulse-ring {
-  0% { box-shadow: 0 0 0 0 #02c39a66; }
+  0% { box-shadow: 0 0 0 0 #FFBE0B66; }
   100% { box-shadow: 0 0 0 18px transparent; }
 }
 @keyframes shimmer {
@@ -71,7 +71,7 @@ body {
   position: sticky; top: 0; z-index: 40;
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
   padding: 12px max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left));
-  background: rgba(240, 243, 189, 0.88);
+  background: rgba(42, 35, 18, 0.94);
   backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
 }
 .mark { display: flex; gap: 10px; align-items: center; font-weight: 700; color: var(--baltic); text-decoration: none; }
@@ -135,7 +135,7 @@ body {
   border: 1px solid var(--line); transition: transform 0.25s ease; color: var(--baltic);
 }
 .p1 { left: 40px; top: 40px; transform: rotateY(-18deg) rotateX(8deg); }
-.p2 { left: 110px; top: 70px; transform: rotateY(-8deg) rotateX(4deg); background: #e7fbf4; }
+.p2 { left: 110px; top: 70px; transform: rotateY(-8deg) rotateX(4deg); background: #493B1B; }
 .p3 { left: 180px; top: 30px; transform: rotateY(12deg) rotateX(10deg); }
 .bands { padding: 40px clamp(16px, 8vw, 96px) 80px; display: grid; gap: 28px; perspective: 900px; }
 .band {
@@ -203,7 +203,7 @@ body {
   border: 1px dashed var(--verdigris); border-radius: 16px; padding: 40px; text-align: center; color: var(--teal);
   transition: border-color 0.2s, background 0.2s, transform 0.2s;
 }
-.void.drag { background: #02c39a22; border-color: var(--mint); transform: scale(1.02); }
+.void.drag { background: #FFBE0B22; border-color: var(--mint); transform: scale(1.02); }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; }
 .preview-grid {
   display: flex !important;
@@ -221,7 +221,7 @@ body {
 }
 .card:hover { transform: translateY(-8px) rotateX(4deg); }
 .card.leaving { animation: none; transform: scale(0.7) rotateY(50deg); opacity: 0; transition: 0.3s; }
-.thumb { aspect-ratio: 3/4; background: linear-gradient(160deg, #d9f5ee, var(--cream)); display: grid; place-items: center; }
+.thumb { aspect-ratio: 3/4; background: linear-gradient(160deg, #493B1B, var(--cream)); display: grid; place-items: center; }
 .thumb canvas { max-width: 100%; max-height: 100%; }
 .meta { padding: 10px; display: flex; justify-content: space-between; gap: 6px; font-size: 12px; color: var(--teal); }
 .meta button {
@@ -239,7 +239,7 @@ body {
 .privacy { padding: 80px clamp(16px, 8vw, 96px); text-align: center; color: var(--baltic); }
 .privacy h2 { font-family: "Source Serif 4", serif; font-size: clamp(28px, 6vw, 40px); }
 .modal {
-  position: fixed; inset: 0; background: rgba(5, 102, 141, 0.45); display: grid; place-items: center; z-index: 50;
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); display: grid; place-items: center; z-index: 50;
 }
 .sheet {
   background: var(--paper); padding: 22px; border-radius: 16px; width: min(420px, 92vw);
@@ -256,7 +256,7 @@ body {
   animation: toast-in 0.3s ease;
 }
 .fx-overlay {
-  position: fixed; inset: 0; background: rgba(4, 52, 74, 0.55);
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7);
   display: grid; place-items: center; z-index: 70; color: #fff;
   backdrop-filter: blur(6px);
 }
@@ -267,7 +267,7 @@ body {
   box-shadow: var(--shadow); min-width: 240px;
 }
 .spinner {
-  width: 46px; height: 46px; border: 4px solid #f0f3bd55; border-top-color: var(--cream);
+  width: 46px; height: 46px; border: 4px solid #2A231255; border-top-color: var(--cream);
   border-radius: 50%; margin: 0 auto 12px; animation: spin 0.8s linear infinite;
 }
 .bar {
@@ -368,3 +368,22 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Turmeric / Malt palette: dark text on yellow controls. */
+.go, .tab.on, .chip.green, .look.on, .cta-bar, .toast, .fx-card, .meta button:hover { background: #FFBE0B; color: #2A2312; }
+.look, .aviso { background: #352D1B; color: #FFF5D6; }
+.paper { background: #FFEDB3; color: #2A2312; }
+.p2 { background: #FFBE0B; }
+:focus-visible { outline: 3px solid #FFBE0B; outline-offset: 3px; }
+input { accent-color: #FFBE0B; }
+body.adjusting-corners { overflow: hidden; }
+#corner-modal { padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
+.corner-sheet { width: min(900px, 100%); height: 100%; max-height: 900px; min-height: 0; overflow: hidden; grid-template-rows: auto auto minmax(0, 1fr) auto; padding: 14px; animation: none; }
+#corner-modal { height: 100vh; height: 100dvh; }
+.corner-sheet h3, .corner-sheet p { margin: 0; }
+#corner-stage { min-height: 0; min-width: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+#corner-canvas { display: block; touch-action: none; flex: none; }
+.corner-sheet .actions { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); }
+.corner-sheet .actions button { padding: 8px; border-radius: 12px; font-size: 13px; }
+@media (max-height: 440px) { .corner-sheet { padding: 8px; gap: 5px; } .corner-sheet .note { display: none; } .corner-sheet { grid-template-rows: auto minmax(0,1fr) auto; } }
+body.adjusting-corners .toast { top: max(12px, env(safe-area-inset-top)); bottom: auto; pointer-events: none; }

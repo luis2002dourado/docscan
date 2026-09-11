@@ -5,26 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>DocScan</title>
   <meta name="description" content="Digitalize, una e edite PDFs no navegador." />
-  <meta name="theme-color" content="#05668d" />
+  <meta name="theme-color" content="#2A2312" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="DocScan" />
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="ds-192.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="ds-192.png" />
-  <link rel="stylesheet" href="styles.css?v=21" />
+  <link rel="stylesheet" href="styles.css?v=22" />
 </head>
 <body class="tool-only">
   <header class="top">
     <span class="mark">
       <svg class="logo" viewBox="0 0 100 100" width="48" height="48" aria-hidden="true">
-        <circle cx="50" cy="50" r="50" fill="#05668d"/>
-        <circle cx="50" cy="50" r="38" fill="#045a7a"/>
-        <path d="M28 32h12v4H32v10h-4V32zm32 0h12v14h-4V36H60v-4zM28 64h4v10h8v4H28V64zm32 10v4h12V64h-4v10H60z" fill="#02c39a"/>
-        <rect x="36" y="34" width="28" height="34" rx="5" transform="rotate(-12 50 51)" fill="#f0f3bd"/>
-        <rect x="42" y="42" width="16" height="3.2" rx="1.5" transform="rotate(-12 50 44)" fill="#02c39a"/>
-        <rect x="42" y="48" width="16" height="3.2" rx="1.5" transform="rotate(-12 50 50)" fill="#02c39a"/>
-        <rect x="42" y="54" width="16" height="3.2" rx="1.5" transform="rotate(-12 50 56)" fill="#02c39a"/>
+        <circle cx="50" cy="50" r="50" fill="#2A2312"/>
+        <circle cx="50" cy="50" r="38" fill="#493B1B"/>
+        <path d="M28 32h12v4H32v10h-4V32zm32 0h12v14h-4V36H60v-4zM28 64h4v10h8v4H28V64zm32 10v4h12V64h-4v10H60z" fill="#FFBE0B"/>
+        <rect x="36" y="34" width="28" height="34" rx="5" transform="rotate(-12 50 51)" fill="#FFF5D6"/>
+        <rect x="42" y="42" width="16" height="3.2" rx="1.5" transform="rotate(-12 50 44)" fill="#FFBE0B"/>
+        <rect x="42" y="48" width="16" height="3.2" rx="1.5" transform="rotate(-12 50 50)" fill="#FFBE0B"/>
+        <rect x="42" y="54" width="16" height="3.2" rx="1.5" transform="rotate(-12 50 56)" fill="#FFBE0B"/>
       </svg>
       <span class="brand-text">DocScan<span class="by">criado e desenvolvido por Luis Fernando</span></span>
     </span>
@@ -142,7 +142,7 @@
     <div class="sheet corner-sheet">
       <h3 id="corner-title">Ajustar os quatro cantos</h3>
       <p class="note">Arraste cada ponto até o canto da folha. Mantenha as linhas ao redor do documento.</p>
-      <canvas id="corner-canvas" aria-label="Prévia para ajustar os cantos do documento"></canvas>
+      <div id="corner-stage"><canvas id="corner-canvas" aria-label="Prévia para ajustar os cantos do documento"></canvas></div>
       <div class="actions">
         <button id="corner-cancel" class="chip ghost" type="button">Cancelar</button>
         <button id="corner-auto" class="chip" type="button">Detectar novamente</button>
@@ -175,6 +175,6 @@
   <script src="vendor/pdf.min.js"></script>
   <script src="vendor/pdf-lib.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <script type="module" src="app.js?v=21"></script>
+  <script type="module" src="app.js?v=22"></script>
 </body>
 </html>

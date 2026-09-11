@@ -30,6 +30,13 @@ const root=path.resolve(__dirname,'..'),fixtures=path.join(__dirname,'fixtures')
     assert.ok(result.beats>0,`${file}: UI heartbeat stopped`);
     photographs.push({file,...result});console.log(file,result.info.status,result.width,result.height);
   }
+  // The worker must preserve every pixel when only an internal frame is visible.
+  const uncertainInput='data:image/png;base64,'+fs.readFileSync(path.join(fixtures,'moldura_sem_borda.png')).toString('base64');
+  await page.evaluate(async input=>{
+    const vision=await import('./vision.js'),img=new Image();img.src=input;await img.decode();
+    const original=await vision.processPhoto(img,'none','original'),result=await vision.processPhoto(img,'auto','original');
+    if(result.scanInfo.status==='detected'||original.toDataURL()!==result.toDataURL())throw new Error('Uncertain crop removed pixels');
+  },uncertainInput);
   // Real UI: upload, crop in worker, export, inspect generated PDF.
   await page.locator('#scan-files').setInputFiles(path.join(fixtures,'trapezio.png'));
   await page.waitForFunction(()=>document.querySelector('#fx').classList.contains('hide'));
@@ -43,6 +50,15 @@ const root=path.resolve(__dirname,'..'),fixtures=path.join(__dirname,'fixtures')
   assert.ok(pdf.getPage(0).getWidth()<800);
   // Mobile-sized viewport: manual adjustment with actual pointer events.
   await page.setViewportSize({width:390,height:844});await page.locator('[data-corners="0"]').click();
+  for(const viewport of [{width:320,height:568},{width:390,height:664},{width:844,height:390},{width:1280,height:600}]) {
+    await page.setViewportSize(viewport);await page.waitForTimeout(100);
+    for(const selector of ['#corner-canvas','#corner-save','#corner-cancel','#corner-auto']) {
+      const bounds=await page.locator(selector).boundingBox();
+      assert.ok(bounds&&bounds.x>=0&&bounds.y>=0&&bounds.x+bounds.width<=viewport.width+1&&bounds.y+bounds.height<=viewport.height+1,selector+' outside '+JSON.stringify(viewport));
+    }
+  }
+  await page.setViewportSize({width:390,height:664});await page.waitForTimeout(100);
+  await page.screenshot({path:path.join(out,'manual-viewport.png')});
   const box=await page.locator('#corner-canvas').boundingBox();
   const first={x:280/799,y:100/719};
   await page.mouse.move(box.x+first.x*box.width,box.y+first.y*box.height);await page.mouse.down();await page.mouse.move(box.x+first.x*box.width+3,box.y+first.y*box.height+3);await page.mouse.up();

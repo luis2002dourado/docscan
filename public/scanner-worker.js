@@ -18,7 +18,7 @@ self.onmessage=async({data:message})=>{
     const {cv}=await loadCv();
     src=cv.matFromImageData({width,height,data:new Uint8ClampedArray(buffer)});
     const detection=manual?{status:'manual',quad:manual,confidence:1}:DocScanEngine.detect(cv,src);
-    const result=detection.quad?DocScanEngine.rectify(cv,src,detection.quad):{width,height,data:new Uint8ClampedArray(src.data)};
+    const result=detection.quad&&detection.status!=='review'?DocScanEngine.rectify(cv,src,detection.quad):{width,height,data:new Uint8ClampedArray(src.data)};
     self.postMessage({id,...detection,width:result.width,height:result.height,buffer:result.data.buffer},[result.data.buffer]);
   }catch(error){self.postMessage({id,error:error?.message||String(error)});}
   finally {if(src)src.delete();}

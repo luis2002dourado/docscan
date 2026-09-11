@@ -385,7 +385,7 @@ function renderScan() {
           <button type="button" data-rm="${i}">✕</button>
         </span>
       </div>
-      <p class="note crop-status">${p.scanInfo?.status === "not-found" ? "Folha não identificada. Foto inteira preservada; ajuste os cantos." : p.scanInfo?.status === "review" ? "Recorte estimado. Confira e ajuste os cantos antes de exportar." : p.scanInfo?.status === "manual" ? "Recorte ajustado manualmente." : p.scanInfo?.status === "detected" ? "Perspectiva corrigida. Confira as bordas." : "Foto inteira."}</p>
+      <p class="note crop-status">${p.scanInfo?.status === "not-found" ? "Folha não identificada. Foto inteira preservada; ajuste os cantos." : p.scanInfo?.status === "review" ? "Bordas incertas. Foto inteira preservada; confirme os cantos no ajuste manual." : p.scanInfo?.status === "manual" ? "Recorte ajustado manualmente." : p.scanInfo?.status === "detected" ? "Perspectiva corrigida. Confira as bordas." : "Foto inteira."}</p>
       ${p.text ? `<div class="ocr">${escapeText(p.text)}</div>` : ""}`;
     card.style.animationDelay = i * 70 + "ms";
     card.querySelector(".thumb").appendChild(p.canvas);
@@ -794,21 +794,30 @@ function drawCorners() {
   const ctx=cornerCanvas.getContext('2d');
   ctx.clearRect(0,0,cornerCanvas.width,cornerCanvas.height);
   ctx.drawImage(cornerPage.img,0,0,cornerCanvas.width,cornerCanvas.height);
-  ctx.strokeStyle='#00e6ad';ctx.lineWidth=3;ctx.fillStyle='rgba(0,230,173,0.12)';
+  ctx.strokeStyle='#FFBE0B';ctx.lineWidth=3;ctx.fillStyle='rgba(255,190,11,0.12)';
   ctx.beginPath();cornerPoints.forEach((p,i)=>ctx[i?'lineTo':'moveTo'](p.x*(cornerCanvas.width-1),p.y*(cornerCanvas.height-1)));ctx.closePath();ctx.fill();ctx.stroke();
   cornerPoints.forEach((p,i)=>{
     const x=p.x*(cornerCanvas.width-1),y=p.y*(cornerCanvas.height-1);
-    ctx.beginPath();ctx.arc(x,y,13,0,Math.PI*2);ctx.fillStyle='#05668d';ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.arc(x,y,13,0,Math.PI*2);ctx.fillStyle='#2A2312';ctx.fill();ctx.stroke();
     ctx.fillStyle='white';ctx.font='bold 14px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(i+1,x,y);
   });
 }
+function fitCorners() {
+  if(!cornerPage)return;
+  const stage=$('corner-stage'),w=cornerPage.img.naturalWidth||cornerPage.img.width,h=cornerPage.img.naturalHeight||cornerPage.img.height;
+  const scale=Math.min(stage.clientWidth/w,stage.clientHeight/h,1);
+  cornerCanvas.style.width=Math.floor(w*scale)+'px';cornerCanvas.style.height=Math.floor(h*scale)+'px';
+  // Keep handles readable and hittable even for tall photographs on short screens.
+  cornerCanvas.width=Math.max(1,Math.floor(w*scale));cornerCanvas.height=Math.max(1,Math.floor(h*scale));drawCorners();
+}
+new ResizeObserver(fitCorners).observe($('corner-stage'));
 document.addEventListener('click',e=>{
   const button=e.target.closest('[data-corners]');if(!button||scanBusy)return;
   cornerPage=scanPages[Number(button.dataset.corners)];
   const w=cornerPage.img.naturalWidth||cornerPage.img.width,h=cornerPage.img.naturalHeight||cornerPage.img.height;
   const scale=Math.min(1,850/Math.max(w,h));cornerCanvas.width=Math.round(w*scale);cornerCanvas.height=Math.round(h*scale);
   cornerPoints=(cornerPage.manual||cornerPage.scanInfo?.quad||[{x:.05,y:.05},{x:.95,y:.05},{x:.95,y:.95},{x:.05,y:.95}]).map(p=>({...p}));
-  $('corner-modal').classList.remove('hide');drawCorners();$('corner-save').focus();
+  $('corner-modal').classList.remove('hide');document.body.classList.add('adjusting-corners');fitCorners();$('corner-save').focus({preventScroll:true});
 });
 function pointerCorner(e) {
   const r=cornerCanvas.getBoundingClientRect();return {x:Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),y:Math.max(0,Math.min(1,(e.clientY-r.top)/r.height))};
@@ -822,16 +831,16 @@ cornerCanvas.addEventListener('pointerdown',e=>{
 });
 cornerCanvas.addEventListener('pointermove',e=>{if(dragCorner<0)return;cornerPoints[dragCorner]=pointerCorner(e);drawCorners();});
 for(const name of ['pointerup','pointercancel','lostpointercapture'])cornerCanvas.addEventListener(name,()=>{dragCorner=-1;});
-$('corner-cancel').addEventListener('click',()=>{$('corner-modal').classList.add('hide');cornerPage=null;});
+$('corner-cancel').addEventListener('click',()=>{$('corner-modal').classList.add('hide');document.body.classList.remove('adjusting-corners');cornerPage=null;});
 $('corner-auto').addEventListener('click',()=>{
   cornerPage.manual=null;cornerPage.base=null;cornerPage.canvas=null;cornerPage.scanInfo=null;
-  $('corner-modal').classList.add('hide');cornerPage=null;renderScan();
+  $('corner-modal').classList.add('hide');document.body.classList.remove('adjusting-corners');cornerPage=null;renderScan();
   document.querySelector('[data-mode="auto"]').click();reprocessScan();
 });
 $('corner-save').addEventListener('click',()=>{
   const q=cornerPoints.map(p=>({x:p.x*999,y:p.y*999}));
   if(!isValidQuad(q,1000,1000)){toast('Os cantos precisam contornar a folha sem cruzar as bordas.');return;}
   cornerPage.manual=cornerPoints.map(p=>({...p}));cornerPage.base=null;cornerPage.canvas=null;
-  $('corner-modal').classList.add('hide');cornerPage=null;renderScan();
+  $('corner-modal').classList.add('hide');document.body.classList.remove('adjusting-corners');cornerPage=null;renderScan();
   document.querySelector('[data-mode="auto"]').click();reprocessScan();
 });

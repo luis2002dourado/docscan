@@ -14,9 +14,9 @@ const root=path.resolve(__dirname,'..'),fixtures=path.join(__dirname,'fixtures')
     const old=legacy.detectDocumentQuad({data:image.data},image.width,image.height);
     function error(q) {if(!q||!test.quad)return null;return Math.max(...test.quad.map(p=>Math.min(...q.map(v=>Math.hypot(p.x-v.x,p.y-v.y)))));}
     const maxError=error(result.quad),oldError=error(old);
-    const pass=test.quad?result.status==='detected'&&maxError<14:result.status==='not-found';
+    const pass=test.reviewOnly?result.status!=='detected':test.quad?result.status==='detected'&&maxError<14:result.status==='not-found';
     if(!pass)failures++;
-    if(result.quad){const r=engine.rectify(cv,src,result.quad);const markers=[0,0,0,0];
+    if(result.quad&&!test.reviewOnly){const r=engine.rectify(cv,src,result.quad);const markers=[0,0,0,0];
       for(let pixel=0;pixel<r.data.length;pixel+=4){const [red,green,blue]=r.data.subarray(pixel,pixel+3);
         if(red>90&&red>green*2.5&&red>blue*2.5)markers[0]++;
         if(green>50&&green>red*2.5&&green>blue*2.5)markers[1]++;

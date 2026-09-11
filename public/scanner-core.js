@@ -45,6 +45,28 @@
     });
     return {mean:support.reduce((s,v)=>s+v,0)/4,min:Math.min(...support)};
   }
+  // Printed boxes often have paper on BOTH sides. Compare bands beyond the ink,
+  // in RGB, so coloured sheets and backgrounds with equal luminance also work.
+  function boundaryContrast(q,rgba,w,h) {
+    const step=Math.max(5,Math.min(w,h)*0.012);
+    const sides=q.map((a,i)=>{
+      const b=q[(i+1)%4],len=dist(a,b),nx=-(b.y-a.y)/len,ny=(b.x-a.x)/len;
+      const values=[];
+      for(let t=2;t<22;t++) {
+        const x=a.x+(b.x-a.x)*t/24,y=a.y+(b.y-a.y)*t/24;
+        const bands=[[],[]];
+        for(const offset of [1,1.7,2.5])for(let side=0;side<2;side++) {
+          const sign=side? -1:1,xx=Math.round(x+nx*step*offset*sign),yy=Math.round(y+ny*step*offset*sign);
+          if(xx>=0&&yy>=0&&xx<w&&yy<h)bands[side].push(Array.from(rgba.subarray((yy*w+xx)*4,(yy*w+xx)*4+3)));
+        }
+        if(bands.some(v=>v.length<2))continue;
+        const med=bands.map(v=>[0,1,2].map(c=>v.map(p=>p[c]).sort((a,b)=>a-b)[Math.floor(v.length/2)]));
+        values.push(Math.hypot(...med[0].map((v,c)=>v-med[1][c]))/Math.sqrt(3));
+      }
+      return values.length?values.sort((a,b)=>a-b)[Math.floor(values.length/2)]:0;
+    });
+    return {sides,credible:sides.filter(v=>v>=9).length,mean:sides.reduce((a,b)=>a+b,0)/4};
+  }
   function detect(cv,src) {
     const owned=[];const mat=()=>{const m=new cv.Mat();owned.push(m);return m;};
     try {
@@ -83,20 +105,26 @@
                 const review=!strong&&a>w*h*0.25&&fill>0.96&&fill<1.08&&support.mean>=0.60;
                 if(!strong&&!review)continue;
                 candidates++;
-                const score=Math.sqrt(a/(w*h))*(0.5+0.5*support.mean)*Math.min(fill,1/fill);
-                if(!best||score>best.score)best={q,score,support,review};
+                const boundary=boundaryContrast(q,small.data,w,h);
+                const uncertain=review||boundary.credible<3;
+                const score=Math.sqrt(a/(w*h))*(0.5+0.5*support.mean)*Math.min(fill,1/fill)*(0.45+0.55*Math.min(1,boundary.mean/24));
+                if(!best||score>best.score)best={q,score,support,review:uncertain};
               }
             } finally {poly.delete();c.delete();}
           }
         } finally {contours.delete();hierarchy.delete();}
       };
       const binary=mat();
-      for(const pair of [[25,75],[60,180],[10,35]]) {
+      cv.morphologyEx(edges,binary,cv.MORPH_CLOSE,kernel);inspect(binary);
+      for(const pair of [[25,75],[60,180],[10,35],[3,12]]) {
         cv.Canny(smooth,binary,...pair);cv.morphologyEx(binary,binary,cv.MORPH_CLOSE,kernel);inspect(binary);
       }
       // Threshold segmentation complements edges on shadows and coloured backgrounds.
       cv.threshold(smooth,binary,0,255,cv.THRESH_BINARY|cv.THRESH_OTSU);inspect(binary);
       cv.bitwise_not(binary,binary);inspect(binary);
+      for(const threshold of [80,120,160,195,220,235]) {
+        cv.threshold(smooth,binary,threshold,255,cv.THRESH_BINARY);inspect(binary);
+      }
       return best?{status:best.review?'review':'detected',quad:best.q.map(p=>({x:p.x*(src.cols-1)/(w-1),y:p.y*(src.rows-1)/(h-1)})),confidence:best.support.mean,candidates}:{status:'not-found',quad:null,confidence:0,candidates};
     } finally {owned.reverse().forEach(m=>m.delete());}
   }

@@ -19,7 +19,8 @@
         "x": 170,
         "y": 650
       }
-    ]
+    ],
+    "reviewOnly": false
   },
   {
     "name": "trapezio",
@@ -41,7 +42,8 @@
         "x": 70,
         "y": 570
       }
-    ]
+    ],
+    "reviewOnly": false
   },
   {
     "name": "perspectiva_forte",
@@ -63,7 +65,8 @@
         "x": 80,
         "y": 500
       }
-    ]
+    ],
+    "reviewOnly": false
   },
   {
     "name": "rotacao",
@@ -85,7 +88,8 @@
         "x": 70,
         "y": 370
       }
-    ]
+    ],
+    "reviewOnly": false
   },
   {
     "name": "lado",
@@ -107,7 +111,8 @@
         "x": 180,
         "y": 590
       }
-    ]
+    ],
+    "reviewOnly": false
   },
   {
     "name": "sombra",
@@ -129,7 +134,8 @@
         "x": 80,
         "y": 580
       }
-    ]
+    ],
+    "reviewOnly": false
   },
   {
     "name": "fundo_textura",
@@ -151,7 +157,8 @@
         "x": 90,
         "y": 590
       }
-    ]
+    ],
+    "reviewOnly": false
   },
   {
     "name": "baixo_contraste",
@@ -173,7 +180,8 @@
         "x": 80,
         "y": 590
       }
-    ]
+    ],
+    "reviewOnly": false
   },
   {
     "name": "desfoque",
@@ -195,7 +203,8 @@
         "x": 70,
         "y": 570
       }
-    ]
+    ],
+    "reviewOnly": false
   },
   {
     "name": "paisagem",
@@ -217,7 +226,54 @@
         "x": 100,
         "y": 600
       }
-    ]
+    ],
+    "reviewOnly": false
+  },
+  {
+    "name": "moldura_interna",
+    "file": "moldura_interna.png",
+    "quad": [
+      {
+        "x": 230,
+        "y": 70
+      },
+      {
+        "x": 640,
+        "y": 180
+      },
+      {
+        "x": 700,
+        "y": 620
+      },
+      {
+        "x": 80,
+        "y": 590
+      }
+    ],
+    "reviewOnly": false
+  },
+  {
+    "name": "moldura_sem_borda",
+    "file": "moldura_sem_borda.png",
+    "quad": [
+      {
+        "x": 230,
+        "y": 70
+      },
+      {
+        "x": 640,
+        "y": 180
+      },
+      {
+        "x": 700,
+        "y": 620
+      },
+      {
+        "x": 80,
+        "y": 590
+      }
+    ],
+    "reviewOnly": true
   },
   {
     "name": "sem_documento",

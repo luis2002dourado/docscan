@@ -6,8 +6,8 @@
   "start_url": "/docscan/",
   "scope": "/docscan/",
   "display": "standalone",
-  "background_color": "#05668d",
-  "theme_color": "#05668d",
+  "background_color": "#2A2312",
+  "theme_color": "#2A2312",
   "lang": "pt-BR",
   "prefer_related_applications": false,
   "icons": [

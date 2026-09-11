@@ -18,9 +18,9 @@ test("interface tem as três ferramentas", () => {
   assert.ok(html.includes("scan-print"));
 });
 
-test("estilo Evernote: serif + verde", () => {
+test("paleta Turmeric e Malt com tipografia serif", () => {
   assert.ok(css.includes("Source Serif") || html.includes("Source Serif"));
-  assert.ok(css.includes("#02c39a") && css.includes("#05668d") && css.includes("#f0f3bd"));
+  assert.ok(css.includes("#FFBE0B") && css.includes("#2A2312"));
 });
 
 test("movimento 3d e pointer", () => {
