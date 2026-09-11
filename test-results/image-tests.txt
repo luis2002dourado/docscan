@@ -1,11 +1,18 @@
-{"name":"frontal","status":"detected","maxCornerErrorPx":0,"legacyMaxCornerErrorPx":0,"ms":1038,"pass":true}
-{"name":"trapezio","status":"detected","maxCornerErrorPx":1.4142135623730951,"legacyMaxCornerErrorPx":1.4142135623730951,"ms":1099,"pass":true}
-{"name":"perspectiva_forte","status":"detected","maxCornerErrorPx":7.810249675906656,"legacyMaxCornerErrorPx":null,"ms":1145,"pass":true}
-{"name":"rotacao","status":"detected","maxCornerErrorPx":1.4142135623730951,"legacyMaxCornerErrorPx":7.300439769427416,"ms":1065,"pass":true}
-{"name":"lado","status":"detected","maxCornerErrorPx":1.4142135623730951,"legacyMaxCornerErrorPx":1,"ms":1166,"pass":true}
-{"name":"sombra","status":"detected","maxCornerErrorPx":0,"legacyMaxCornerErrorPx":0,"ms":1054,"pass":true}
-{"name":"fundo_textura","status":"detected","maxCornerErrorPx":0,"legacyMaxCornerErrorPx":0,"ms":1160,"pass":true}
-{"name":"baixo_contraste","status":"detected","maxCornerErrorPx":0,"legacyMaxCornerErrorPx":5.674164638016526,"ms":992,"pass":true}
-{"name":"desfoque","status":"detected","maxCornerErrorPx":1.4142135623730951,"legacyMaxCornerErrorPx":3.6055512754639896,"ms":1011,"pass":true}
-{"name":"paisagem","status":"detected","maxCornerErrorPx":1.4142135623730951,"legacyMaxCornerErrorPx":0,"ms":1012,"pass":true}
-{"name":"sem_documento","status":"not-found","maxCornerErrorPx":null,"legacyMaxCornerErrorPx":null,"ms":1008,"pass":true}
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> docscan@1.1.0 test:images
+> node tests/image-regression.cjs
+
+{"name":"frontal","status":"detected","maxCornerErrorPx":0,"legacyMaxCornerErrorPx":0,"ms":2068,"pass":true}
+{"name":"trapezio","status":"detected","maxCornerErrorPx":1.4142135623730951,"legacyMaxCornerErrorPx":1.4142135623730951,"ms":2247,"pass":true}
+{"name":"perspectiva_forte","status":"detected","maxCornerErrorPx":8.602325267042627,"legacyMaxCornerErrorPx":null,"ms":2040,"pass":true}
+{"name":"rotacao","status":"detected","maxCornerErrorPx":1.4142135623730951,"legacyMaxCornerErrorPx":7.300439769427416,"ms":2209,"pass":true}
+{"name":"lado","status":"detected","maxCornerErrorPx":1.4142135623730951,"legacyMaxCornerErrorPx":1,"ms":2440,"pass":true}
+{"name":"sombra","status":"detected","maxCornerErrorPx":0,"legacyMaxCornerErrorPx":0,"ms":2529,"pass":true}
+{"name":"fundo_textura","status":"detected","maxCornerErrorPx":1.4142135623730951,"legacyMaxCornerErrorPx":0,"ms":2650,"pass":true}
+{"name":"baixo_contraste","status":"detected","maxCornerErrorPx":0,"legacyMaxCornerErrorPx":5.674164638016526,"ms":2493,"pass":true}
+{"name":"desfoque","status":"detected","maxCornerErrorPx":3.1622776601683795,"legacyMaxCornerErrorPx":3.6055512754639896,"ms":2355,"pass":true}
+{"name":"paisagem","status":"detected","maxCornerErrorPx":1,"legacyMaxCornerErrorPx":0,"ms":2336,"pass":true}
+{"name":"moldura_interna","status":"detected","maxCornerErrorPx":1,"legacyMaxCornerErrorPx":110.75197515168747,"ms":2475,"pass":true}
+{"name":"moldura_sem_borda","status":"review","maxCornerErrorPx":150.94369811290565,"legacyMaxCornerErrorPx":104.23531071570707,"ms":2392,"pass":true}
+{"name":"sem_documento","status":"not-found","maxCornerErrorPx":null,"legacyMaxCornerErrorPx":null,"ms":2178,"pass":true}

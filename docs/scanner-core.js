@@ -88,19 +88,21 @@
         try {
           cv.findContours(binary,contours,hierarchy,cv.RETR_LIST,cv.CHAIN_APPROX_SIMPLE);
           for(let i=0;i<contours.size();i++) {
-            const c=contours.get(i),poly=new cv.Mat();
+            const c=contours.get(i),poly=new cv.Mat(),hull=new cv.Mat();
             try {
               const area=Math.abs(cv.contourArea(c));if(area<w*h*0.035)continue;
-              const perimeter=cv.arcLength(c,true);
-              for(const epsilon of [0.003,0.006,0.009,0.012,0.02,0.03,0.045]) {
-                cv.approxPolyDP(c,poly,perimeter*epsilon,true);
+              cv.convexHull(c,hull);
+              const perimeter=cv.arcLength(hull,true);
+              for(const shape of [c,hull]) for(const epsilon of [0.003,0.006,0.009,0.012,0.02,0.03,0.045]) {
+                cv.approxPolyDP(shape,poly,perimeter*epsilon,true);
                 if(poly.rows!==4 || !cv.isContourConvex(poly))continue;
                 const q=orderQuad(Array.from({length:4},(_,j)=>({x:poly.data32S[j*2],y:poly.data32S[j*2+1]})));
                 if(!isValidQuad(q,w,h,0.035))continue;
                 // Exclude the image frame and incomplete sheets touching the frame.
                 if(q.some(p=>p.x<2||p.y<2||p.x>w-3||p.y>h-3))continue;
-                const a=quadArea(q),fill=area/a;if(fill<0.80||fill>1.20)continue;
+                const a=quadArea(q),fill=area/a;if(fill<0.60||fill>1.20)continue;
                 const support=edgeSupport(q,edges.data,w,h);
+                if(fill<0.80&&(shape!==hull||support.min<0.60||support.mean<0.85||boundaryContrast(q,small.data,w,h).credible<3))continue;
                 const strong=support.min>=0.45&&support.mean>=0.68;
                 const review=!strong&&a>w*h*0.25&&fill>0.96&&fill<1.08&&support.mean>=0.60;
                 if(!strong&&!review)continue;
@@ -110,7 +112,7 @@
                 const score=Math.sqrt(a/(w*h))*(0.5+0.5*support.mean)*Math.min(fill,1/fill)*(0.45+0.55*Math.min(1,boundary.mean/24));
                 if(!best||score>best.score)best={q,score,support,review:uncertain};
               }
-            } finally {poly.delete();c.delete();}
+            } finally {hull.delete();poly.delete();c.delete();}
           }
         } finally {contours.delete();hierarchy.delete();}
       };
@@ -124,6 +126,12 @@
       cv.bitwise_not(binary,binary);inspect(binary);
       for(const threshold of [80,120,160,195,220,235]) {
         cv.threshold(smooth,binary,threshold,255,cv.THRESH_BINARY);inspect(binary);
+      }
+      // Separate colour segmentation recovers weak luminance boundaries of coloured cards.
+      for(let ch=0;ch<3;ch++) {
+        for(let pixel=0;pixel<w*h;pixel++)channel.data[pixel]=small.data[pixel*4+ch];
+        cv.GaussianBlur(channel,channel,new cv.Size(5,5),0);
+        cv.threshold(channel,binary,0,255,cv.THRESH_BINARY|cv.THRESH_OTSU);inspect(binary);
       }
       return best?{status:best.review?'review':'detected',quad:best.q.map(p=>({x:p.x*(src.cols-1)/(w-1),y:p.y*(src.rows-1)/(h-1)})),confidence:best.support.mean,candidates}:{status:'not-found',quad:null,confidence:0,candidates};
     } finally {owned.reverse().forEach(m=>m.delete());}

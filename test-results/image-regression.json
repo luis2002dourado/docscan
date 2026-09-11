@@ -4,7 +4,7 @@
     "status": "detected",
     "maxCornerErrorPx": 0,
     "legacyMaxCornerErrorPx": 0,
-    "ms": 1284,
+    "ms": 2068,
     "pass": true
   },
   {
@@ -12,7 +12,7 @@
     "status": "detected",
     "maxCornerErrorPx": 1.4142135623730951,
     "legacyMaxCornerErrorPx": 1.4142135623730951,
-    "ms": 1147,
+    "ms": 2247,
     "pass": true
   },
   {
@@ -20,7 +20,7 @@
     "status": "detected",
     "maxCornerErrorPx": 8.602325267042627,
     "legacyMaxCornerErrorPx": null,
-    "ms": 1189,
+    "ms": 2040,
     "pass": true
   },
   {
@@ -28,7 +28,7 @@
     "status": "detected",
     "maxCornerErrorPx": 1.4142135623730951,
     "legacyMaxCornerErrorPx": 7.300439769427416,
-    "ms": 1465,
+    "ms": 2209,
     "pass": true
   },
   {
@@ -36,7 +36,7 @@
     "status": "detected",
     "maxCornerErrorPx": 1.4142135623730951,
     "legacyMaxCornerErrorPx": 1,
-    "ms": 1316,
+    "ms": 2440,
     "pass": true
   },
   {
@@ -44,7 +44,7 @@
     "status": "detected",
     "maxCornerErrorPx": 0,
     "legacyMaxCornerErrorPx": 0,
-    "ms": 1322,
+    "ms": 2529,
     "pass": true
   },
   {
@@ -52,7 +52,7 @@
     "status": "detected",
     "maxCornerErrorPx": 1.4142135623730951,
     "legacyMaxCornerErrorPx": 0,
-    "ms": 1414,
+    "ms": 2650,
     "pass": true
   },
   {
@@ -60,7 +60,7 @@
     "status": "detected",
     "maxCornerErrorPx": 0,
     "legacyMaxCornerErrorPx": 5.674164638016526,
-    "ms": 1163,
+    "ms": 2493,
     "pass": true
   },
   {
@@ -68,15 +68,15 @@
     "status": "detected",
     "maxCornerErrorPx": 3.1622776601683795,
     "legacyMaxCornerErrorPx": 3.6055512754639896,
-    "ms": 1329,
+    "ms": 2355,
     "pass": true
   },
   {
     "name": "paisagem",
     "status": "detected",
-    "maxCornerErrorPx": 1.4142135623730951,
+    "maxCornerErrorPx": 1,
     "legacyMaxCornerErrorPx": 0,
-    "ms": 1400,
+    "ms": 2336,
     "pass": true
   },
   {
@@ -84,7 +84,7 @@
     "status": "detected",
     "maxCornerErrorPx": 1,
     "legacyMaxCornerErrorPx": 110.75197515168747,
-    "ms": 1172,
+    "ms": 2475,
     "pass": true
   },
   {
@@ -92,7 +92,7 @@
     "status": "review",
     "maxCornerErrorPx": 150.94369811290565,
     "legacyMaxCornerErrorPx": 104.23531071570707,
-    "ms": 1213,
+    "ms": 2392,
     "pass": true
   },
   {
@@ -100,7 +100,7 @@
     "status": "not-found",
     "maxCornerErrorPx": null,
     "legacyMaxCornerErrorPx": null,
-    "ms": 1032,
+    "ms": 2178,
     "pass": true
   }
 ]

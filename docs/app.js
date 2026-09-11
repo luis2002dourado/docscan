@@ -711,19 +711,21 @@ function printCanvases(canvases) {
   if (!w) return toast("Permita pop-ups para imprimir.");
   w.document.write(
     `<html><head><title>Imprimir</title><style>
-      @page { margin: 10mm; }
+      @page { size: A4 portrait; margin: 10mm; }
       body { margin: 0; }
-      img { width: 100%; page-break-after: always; display: block; }
+      section { width: 190mm; height: 276mm; display: flex; align-items: center; justify-content: center; break-after: page; }
+      section:last-child { break-after: auto; }
+      img { display: block; width: 100%; height: 100%; object-fit: contain; }
     </style></head><body></body></html>`
   );
   canvases.forEach((c) => {
     const img = w.document.createElement("img");
     img.src = c.toDataURL("image/jpeg", 0.92);
-    w.document.body.appendChild(img);
+    const sheet=w.document.createElement("section");sheet.appendChild(img);w.document.body.appendChild(sheet);
   });
   w.document.close();
   w.focus();
-  setTimeout(() => w.print(), 400);
+  Promise.all(Array.from(w.document.images, img => img.decode())).then(() => { if (!w.closed) w.print(); }).catch(() => toast("Falha ao preparar a imagem para impressão."));
 }
 
 async function printPdfBytes(bytes) {
