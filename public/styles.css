@@ -1,16 +1,16 @@
 :root {
-  --baltic: #FFBE0B;
-  --teal: #EBC766;
-  --verdigris: #D99E00;
-  --mint: #FFBE0B;
-  --cream: #2A2312;
-  --paper: #352D1B;
-  --ink: #FFF5D6;
-  --mute: #FFBE0B;
-  --green: #FFBE0B;
-  --green-d: #D99E00;
-  --line: #68572C;
-  --shadow: 0 22px 50px rgba(0, 0, 0, 0.24);
+  --baltic: #cc0000;
+  --teal: #9b0000;
+  --verdigris: #cc0000;
+  --mint: #e10600;
+  --cream: #f4f4f4;
+  --paper: #ffffff;
+  --ink: #1a1a1a;
+  --mute: #5c5c5c;
+  --green: #cc0000;
+  --green-d: #9b0000;
+  --line: #e2e2e2;
+  --shadow: 0 22px 50px rgba(204, 0, 0, 0.18);
   font-family: Inter, system-ui, sans-serif;
   color: var(--ink);
   background: var(--cream);
@@ -22,8 +22,8 @@ body {
   margin: 0;
   min-width: 0;
   background:
-    radial-gradient(900px 500px at 0% -10%, #FFBE0B33, transparent),
-    radial-gradient(800px 400px at 100% 0%, #FFBE0B22, transparent),
+    radial-gradient(900px 500px at 0% -10%, #cc000033, transparent),
+    radial-gradient(800px 400px at 100% 0%, #11111122, transparent),
     var(--cream);
   overflow-x: hidden;
 }
@@ -40,7 +40,7 @@ body {
   to { opacity: 1; transform: none; }
 }
 @keyframes pulse-ring {
-  0% { box-shadow: 0 0 0 0 #FFBE0B66; }
+  0% { box-shadow: 0 0 0 0 #cc000066; }
   100% { box-shadow: 0 0 0 18px transparent; }
 }
 @keyframes shimmer {
@@ -135,7 +135,7 @@ body {
   border: 1px solid var(--line); transition: transform 0.25s ease; color: var(--baltic);
 }
 .p1 { left: 40px; top: 40px; transform: rotateY(-18deg) rotateX(8deg); }
-.p2 { left: 110px; top: 70px; transform: rotateY(-8deg) rotateX(4deg); background: #493B1B; }
+.p2 { left: 110px; top: 70px; transform: rotateY(-8deg) rotateX(4deg); background: #e8e8e8; }
 .p3 { left: 180px; top: 30px; transform: rotateY(12deg) rotateX(10deg); }
 .bands { padding: 40px clamp(16px, 8vw, 96px) 80px; display: grid; gap: 28px; perspective: 900px; }
 .band {
@@ -203,7 +203,7 @@ body {
   border: 1px dashed var(--verdigris); border-radius: 16px; padding: 40px; text-align: center; color: var(--teal);
   transition: border-color 0.2s, background 0.2s, transform 0.2s;
 }
-.void.drag { background: #FFBE0B22; border-color: var(--mint); transform: scale(1.02); }
+.void.drag { background: #cc000022; border-color: var(--mint); transform: scale(1.02); }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; }
 .preview-grid {
   display: flex !important;
@@ -221,7 +221,7 @@ body {
 }
 .card:hover { transform: translateY(-8px) rotateX(4deg); }
 .card.leaving { animation: none; transform: scale(0.7) rotateY(50deg); opacity: 0; transition: 0.3s; }
-.thumb { aspect-ratio: 3/4; background: linear-gradient(160deg, #493B1B, var(--cream)); display: grid; place-items: center; }
+.thumb { aspect-ratio: 3/4; background: linear-gradient(160deg, #ececec, var(--cream)); display: grid; place-items: center; }
 .thumb canvas { max-width: 100%; max-height: 100%; }
 .meta { padding: 10px; display: flex; justify-content: space-between; gap: 6px; font-size: 12px; color: var(--teal); }
 .meta button {
@@ -267,7 +267,7 @@ body {
   box-shadow: var(--shadow); min-width: 240px;
 }
 .spinner {
-  width: 46px; height: 46px; border: 4px solid #2A231255; border-top-color: var(--cream);
+  width: 46px; height: 46px; border: 4px solid #ffffff55; border-top-color: var(--cream);
   border-radius: 50%; margin: 0 auto 12px; animation: spin 0.8s linear infinite;
 }
 .bar {
@@ -370,12 +370,12 @@ body {
 }
 
 /* Turmeric / Malt palette: dark text on yellow controls. */
-.go, .tab.on, .chip.green, .look.on, .cta-bar, .toast, .fx-card, .meta button:hover { background: #FFBE0B; color: #2A2312; }
-.look, .aviso { background: #352D1B; color: #FFF5D6; }
-.paper { background: #FFEDB3; color: #2A2312; }
-.p2 { background: #FFBE0B; }
-:focus-visible { outline: 3px solid #FFBE0B; outline-offset: 3px; }
-input { accent-color: #FFBE0B; }
+.go, .tab.on, .chip.green, .look.on, .cta-bar, .toast, .fx-card, .meta button:hover { background: #cc0000; color: #ffffff; }
+.look, .aviso { background: #ffffff; color: #1a1a1a; }
+.paper { background: #ffffff; color: #1a1a1a; }
+.p2 { background: #cc0000; }
+:focus-visible { outline: 3px solid #cc0000; outline-offset: 3px; }
+input { accent-color: #cc0000; }
 body.adjusting-corners { overflow: hidden; }
 #corner-modal { padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
 .corner-sheet { width: min(900px, 100%); height: 100%; max-height: 900px; min-height: 0; overflow: hidden; grid-template-rows: auto auto minmax(0, 1fr) auto; padding: 14px; animation: none; }

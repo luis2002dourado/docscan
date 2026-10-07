@@ -11,7 +11,7 @@ import {
 const pdfjsLib = window.pdfjsLib;
 const PDFLib = window.PDFLib;
 
-if ("serviceWorker" in navigator) {
+if ("serviceWorker" in navigator && location.protocol !== "file:") {
   navigator.serviceWorker.getRegistrations().then((regs) => {
     regs.forEach((r) => r.update());
   });
@@ -515,6 +515,160 @@ $("merge-export").addEventListener("click", async () => {
       pages.forEach((p) => out.addPage(p));
     }
     await downloadPdf(out, nome);
+  } finally {
+    fxHide();
+  }
+});
+
+/* COMPRESS */
+const cmpItems = [];
+const CMP_LEVEL = {
+  extreme: { maxSide: 840, jpeg: 0.38, gray: true, label: "extrema" },
+  recommended: { maxSide: 1080, jpeg: 0.5, gray: false, label: "recomendada" },
+  less: { maxSide: 1280, jpeg: 0.64, gray: false, label: "menos compressão" },
+};
+function fmtBytes(n) {
+  if (n < 1024) return n + " B";
+  if (n < 1048576) return (n / 1024).toFixed(1) + " KB";
+  return (n / 1048576).toFixed(2) + " MB";
+}
+function cmpLevel() {
+  const onb = document.querySelector("#cmp-btns .look.on");
+  return (onb && onb.dataset.cmp) || "recommended";
+}
+function renderCmpQueue() {
+  const q = $("cmp-queue");
+  if (q)
+    q.textContent = cmpItems.length
+      ? cmpItems.length + " PDF(s) — " + fmtBytes(cmpItems.reduce((s, it) => s + it.bytes.length, 0))
+      : "Nenhum PDF na fila.";
+  const list = $("cmp-list");
+  if (!list) return;
+  list.innerHTML = cmpItems
+    .map(
+      (it, i) =>
+        `<div class="row"><strong>${escapeText(it.name)}</strong> <span>${fmtBytes(it.bytes.length)} <button type="button" data-crm="${i}">✕</button></span></div>`
+    )
+    .join("");
+}
+on("cmp-files", "change", async (e) => {
+  fxShow("Lendo PDFs…");
+  for (const raw of e.target.files || []) {
+    const file = readFile(raw, "pdf");
+    if (!file) continue;
+    cmpItems.push({ name: sanitizeFilename(file.name), bytes: new Uint8Array(await file.arrayBuffer()) });
+  }
+  e.target.value = "";
+  renderCmpQueue();
+  fxHide();
+});
+on("cmp-clear", "click", () => {
+  cmpItems.length = 0;
+  const out = $("cmp-out");
+  if (out) out.innerHTML = "";
+  const r = $("cmp-result");
+  if (r) r.textContent = "O PDF comprimido aparece aqui.";
+  renderCmpQueue();
+});
+document.addEventListener("click", (e) => {
+  const t = e.target;
+  if (!t || t.dataset.crm === undefined) return;
+  if (!t.closest("#cmp-list")) return;
+  cmpItems.splice(Number(t.dataset.crm), 1);
+  renderCmpQueue();
+});
+on("cmp-btns", "click", (e) => {
+  const btn = e.target.closest("[data-cmp]");
+  if (!btn) return;
+  document.querySelectorAll("#cmp-btns .look").forEach((b) => b.classList.toggle("on", b === btn));
+});
+function toGrayCanvas(canvas) {
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const y = (d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114) | 0;
+    d[i] = d[i + 1] = d[i + 2] = y;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+async function rasterPdf(bytes, maxSide, jpeg, gray) {
+  const pdf = await pdfjsLib.getDocument({ data: bytes.slice(0) }).promise;
+  const { PDFDocument } = PDFLib;
+  const out = await PDFDocument.create();
+  for (let n = 1; n <= pdf.numPages; n++) {
+    const page = await pdf.getPage(n);
+    const base = page.getViewport({ scale: 1 });
+    const scale = maxSide / Math.max(base.width, base.height, 1);
+    const viewport = page.getViewport({ scale: Math.min(scale, 2) });
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(viewport.width));
+    canvas.height = Math.max(1, Math.round(viewport.height));
+    await page.render({ canvasContext: canvas.getContext("2d", { willReadFrequently: true }), viewport }).promise;
+    if (gray) toGrayCanvas(canvas);
+    const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", jpeg));
+    canvas.width = canvas.height = 1;
+    if (!blob) continue;
+    const img = await out.embedJpg(await blob.arrayBuffer());
+    const pg = out.addPage([img.width, img.height]);
+    pg.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+  }
+  return out.save();
+}
+async function compressPdfBytes(bytes, level) {
+  if (!pdfjsLib || !PDFLib) throw new Error("PDF.js/PDF-lib não carregou");
+  const cfg = CMP_LEVEL[level] || CMP_LEVEL.recommended;
+  let maxSide = cfg.maxSide;
+  let jpeg = cfg.jpeg;
+  let gray = cfg.gray;
+  let best = await rasterPdf(bytes, maxSide, jpeg, gray);
+  let guard = 0;
+  while (best.length >= bytes.length && guard < 5) {
+    guard++;
+    maxSide = Math.max(480, Math.round(maxSide * 0.72));
+    jpeg = Math.max(0.28, jpeg - 0.1);
+    gray = true;
+    const next = await rasterPdf(bytes, maxSide, jpeg, gray);
+    if (next.length < best.length) best = next;
+    else break;
+  }
+  if (best.length >= bytes.length) return { bytes: bytes.slice(0), same: true };
+  return { bytes: best, same: false };
+}
+on("cmp-run", "click", async () => {
+  if (!cmpItems.length) return toast("Adicione um PDF.");
+  const level = cmpLevel();
+  const cfg = CMP_LEVEL[level];
+  fxShow("Comprimindo PDF…");
+  const out = $("cmp-out");
+  if (out) out.innerHTML = "";
+  try {
+    const lines = [];
+    for (const it of cmpItems) {
+      const packed = await compressPdfBytes(it.bytes, level);
+      const nome = it.name.replace(/\.pdf$/i, "") + "-comprimido";
+      const before = it.bytes.length;
+      const after = packed.bytes.length;
+      const pct = before ? Math.round((1 - after / before) * 100) : 0;
+      const delta =
+        packed.same || after >= before
+          ? "já estava compacto — mantido o original"
+          : fmtBytes(before) + " → " + fmtBytes(after) + " (" + pct + "% menor)";
+      lines.push(`<div class="row"><strong>${escapeText(nome)}.pdf</strong> <span>${delta}</span></div>`);
+      if (packed.same || after >= before) continue;
+      const blob = new Blob([packed.bytes], { type: "application/pdf" });
+      const a = document.createElement("a");
+      a.href = trackUrl(URL.createObjectURL(blob));
+      a.download = sanitizeFilename(nome) + ".pdf";
+      a.click();
+    }
+    if (out) out.innerHTML = lines.join("");
+    const r = $("cmp-result");
+    if (r) r.textContent = "Compressão " + cfg.label + " pronta.";
+    toast("PDF comprimido.");
+  } catch (err) {
+    console.error(err);
+    toast("Não deu para comprimir este PDF.");
   } finally {
     fxHide();
   }
