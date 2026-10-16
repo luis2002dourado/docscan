@@ -49,3 +49,14 @@ test("não há x-powered-by", async () => {
   const res = await fetch(base + "/");
   assert.equal(res.headers.get("x-powered-by"), null);
 });
+
+test('worker OpenCV isolado e interface sem unsafe-eval', async () => {
+  const page = await fetch(base + '/docscan/');
+  assert.equal(page.status, 200);
+  assert.ok(!page.headers.get('content-security-policy').includes("'unsafe-eval'"));
+  const worker = await fetch(base + '/docscan/scanner-worker.js');
+  assert.equal(worker.status, 200);
+  const policy=worker.headers.get('content-security-policy');
+  assert.ok(policy.includes("connect-src 'none'"));
+  assert.ok(policy.includes("script-src 'self' 'unsafe-eval'"));
+});

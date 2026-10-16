@@ -5,6 +5,7 @@ import {
   escapeText,
   processPhoto,
   enhanceDocument,
+  isValidQuad,
 } from "./vision.js";
 
 const pdfjsLib = window.pdfjsLib;
@@ -14,8 +15,9 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") {
   navigator.serviceWorker.getRegistrations().then((regs) => {
     regs.forEach((r) => r.update());
   });
-  navigator.serviceWorker.register("/docscan/sw.js", { scope: "/docscan/" }).catch((err) => console.warn("SW", err));
+  navigator.serviceWorker.register(new URL("./sw.js", import.meta.url)).catch((err) => console.warn("SW", err));
 }
+
 const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
 let deferredInstall = null;
 window.addEventListener("beforeinstallprompt", (e) => {
@@ -28,7 +30,8 @@ window.addEventListener("appinstalled", () => {
   if (btn) btn.classList.add("hide");
 });
 document.addEventListener("click", async (e) => {
-  if (!e.target || e.target.id !== "install-btn") return;
+  const btn = e.target && e.target.closest ? e.target.closest("#install-btn") : null;
+  if (!btn) return;
   if (standalone) {
     toast("O DocScan já está instalado.");
     return;
@@ -68,27 +71,19 @@ const toast = (m) => {
   t.style.animation = "none";
   void t.offsetWidth;
   t.style.animation = "";
-  setTimeout(() => t.classList.add("hide"), 2400);
+  setTimeout(() => t.classList.add("hide"), 2600);
 };
 
+let scanBusy = false;
 function fxShow(msg) {
+  scanBusy = true;
   $("fx-msg").textContent = msg;
   $("fx").classList.remove("hide");
 }
 function fxHide() {
+  scanBusy = false;
   $("fx").classList.add("hide");
 }
-function burst(x, y) {
-  const b = document.createElement("div");
-  b.className = "burst";
-  b.style.left = x + "px";
-  b.style.top = y + "px";
-  document.body.appendChild(b);
-  setTimeout(() => b.remove(), 700);
-}
-document.addEventListener("click", (e) => {
-  if (e.target.closest(".chip, .tab, .go, .meta button")) burst(e.clientX, e.clientY);
-});
 
 try {
   localStorage.clear();
@@ -119,9 +114,13 @@ window.addEventListener("pagehide", () => {});
 
 document.querySelectorAll(".tab").forEach((btn) => {
   btn.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach((b) => b.classList.remove("on"));
+    document.querySelectorAll(".tab").forEach((b) => {
+      b.classList.remove("on");
+      b.setAttribute("aria-selected", "false");
+    });
     document.querySelectorAll(".panel").forEach((p) => p.classList.remove("on"));
     btn.classList.add("on");
+    btn.setAttribute("aria-selected", "true");
     $("panel-" + btn.dataset.tab).classList.add("on");
   });
 });
@@ -234,7 +233,7 @@ function thumbData(img) {
 
 async function addImages(files) {
   const list = [...files];
-  if (!list.length) return;
+  if (!list.length || scanBusy) return;
   fxShow("Lendo arquivos…");
   try {
     for (const raw of list) {
@@ -255,7 +254,7 @@ async function addImages(files) {
       }
     }
     updateQueue();
-    toast("Pré-visualização pronta. Confira abaixo do botão Enviar.");
+    toast("Pré-visualização pronta. Clique em Aplicar mudanças para processar.");
   } catch (err) {
     console.error(err);
     toast("Falha ao ler o arquivo.");
@@ -269,7 +268,7 @@ function updateQueue() {
   if (el) {
     const n = scanPages.length;
     el.textContent = n
-      ? n + " arquivo(s) na fila — pré-visualização:"
+      ? n + " página(s) na fila — pré-visualização:"
       : "Nenhum arquivo na fila.";
   }
   let box = $("scan-preview");
@@ -287,22 +286,32 @@ function updateQueue() {
     const src = p.preview || (p.img && p.img.src) || "";
     card.innerHTML =
       `<div class="thumb"><img alt="Prévia ${i + 1}" src="${src}"></div>` +
-      `<div class="meta"><span>Fila ${i + 1}</span><button type="button" data-qrm="${i}">✕</button></div>`;
+      `<div class="meta"><span>Fila ${i + 1}</span><span class="meta-actions"><button type="button" data-corners="${i}" title="Ajustar os 4 cantos">Ajustar cantos</button><button type="button" data-qrm="${i}" title="Remover página" aria-label="Remover">✕</button></span></div>`;
     box.appendChild(card);
   });
 }
 
+function nextPaint() {
+  return new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+}
+
 async function reprocessScan() {
+  if (scanBusy) return;
   if (!scanPages.length) {
     toast("Envie um arquivo primeiro.");
     return;
   }
   const { mode, look } = scanSettings();
   const doOcr = $("scan-ocr") && $("scan-ocr").checked;
-    fxShow("Recortando e endireitando a folha…");
+  fxShow("Recortando e endireitando a folha…");
+  await nextPaint();
   try {
-    for (const p of scanPages) {
-      p.base = await processPhoto(p.img, mode, "original");
+    for (let i = 0; i < scanPages.length; i++) {
+      const p = scanPages[i];
+      if (scanPages.length > 1) fxShow(`Recortando e endireitando (${i + 1}/${scanPages.length})…`);
+      p.text = "";
+      if (!p.base || p.cropMode !== mode) p.base = await processPhoto(p.img, mode, "original", p.manual);
+      p.scanInfo = p.base.scanInfo;
       p.cropMode = mode;
       const copy = document.createElement("canvas");
       copy.width = p.base.width;
@@ -317,12 +326,14 @@ async function reprocessScan() {
           p.text = "";
         }
       }
+      await nextPaint();
     }
     renderScan();
-    toast("Pronto. Confira o resultado abaixo.");
+    const missed = scanPages.filter((p) => p.scanInfo?.status === "not-found").length;
+    toast(missed ? `${missed} página(s) sem recorte seguro. Use Ajustar cantos.` : "Pronto. Confira o resultado na mesa de visualização.");
   } catch (err) {
     console.error(err);
-    toast("Não deu para aplicar o filtro.");
+    toast(err.message || "Não deu para aplicar o filtro.");
   } finally {
     fxHide();
   }
@@ -335,17 +346,19 @@ document.getElementById("mode-btns").addEventListener("click", (e) => {
   if (!btn) return;
   $("scan-mode").value = btn.dataset.mode;
   document.querySelectorAll("#mode-btns .look").forEach((b) => b.classList.toggle("on", b === btn));
+  if (scanPages.some((p) => p.canvas)) reprocessScan();
 });
 document.getElementById("look-btns").addEventListener("click", (e) => {
   const btn = e.target.closest("[data-look]");
   if (!btn) return;
   $("scan-look").value = btn.dataset.look;
   document.querySelectorAll("#look-btns .look").forEach((b) => b.classList.toggle("on", b === btn));
+  if (scanPages.some((p) => p.canvas)) reprocessScan();
 });
 on("scan-apply", "click", () => reprocessScan());
 document.addEventListener("click", (e) => {
   const t = e.target;
-  if (!t || !t.dataset || t.dataset.qrm === undefined) return;
+  if (scanBusy || !t || !t.dataset || t.dataset.qrm === undefined) return;
   if (!t.closest("#scan-preview")) return;
   scanPages.splice(Number(t.dataset.qrm), 1);
   updateQueue();
@@ -359,18 +372,44 @@ function renderScan() {
   grid.innerHTML = "";
   scanPages.forEach((p, i) => {
     if (!p.canvas) return;
+    const st = p.scanInfo?.status;
+    const statusClass =
+      st === "detected" || st === "manual"
+        ? "status-ok"
+        : st === "not-found" || st === "review"
+        ? "status-warn"
+        : "";
+    const statusText =
+      st === "not-found"
+        ? "Folha não identificada. Foto inteira preservada; ajuste os cantos."
+        : st === "review"
+        ? "Bordas incertas. Foto inteira preservada; confirme os cantos no ajuste manual."
+        : st === "manual"
+        ? "Recorte ajustado manualmente."
+        : st === "detected"
+        ? "Perspectiva corrigida. Confira as bordas."
+        : "Foto inteira.";
     const card = document.createElement("article");
     card.className = "card";
     card.innerHTML = `<div class="thumb"></div>
       <div class="meta"><span>Pág. ${i + 1}</span>
-        <span>
-          <button type="button" data-up="${i}">↑</button>
-          <button type="button" data-dn="${i}">↓</button>
-          <button type="button" data-rm="${i}">✕</button>
+        <span class="meta-actions">
+          <button type="button" data-corners="${i}" title="Ajustar os 4 cantos">Cantos</button>
+          <button type="button" data-up="${i}" title="Mover para trás" aria-label="Subir">↑</button>
+          <button type="button" data-dn="${i}" title="Mover para frente" aria-label="Descer">↓</button>
+          <button type="button" data-rm="${i}" title="Excluir página" aria-label="Remover">✕</button>
         </span>
       </div>
-      ${p.text ? `<div class="ocr">${escapeText(p.text)}</div>` : ""}`;
-    card.style.animationDelay = i * 70 + "ms";
+      <p class="note crop-status ${statusClass}">${statusText}</p>
+      ${
+        p.text
+          ? `<div class="ocr-box">
+              <div class="ocr-head"><span>Texto extraído (OCR)</span><button type="button" class="ocr-copy-btn" data-copy-ocr="${i}">Copiar</button></div>
+              <div class="ocr">${escapeText(p.text)}</div>
+            </div>`
+          : ""
+      }`;
+    card.style.animationDelay = i * 50 + "ms";
     card.querySelector(".thumb").appendChild(p.canvas);
     grid.appendChild(card);
   });
@@ -384,7 +423,26 @@ $("scan-cam").addEventListener("change", (e) => {
   addImages([...e.target.files]);
   e.target.value = "";
 });
-$("scan-grid").addEventListener("click", (e) => {
+$("scan-grid").addEventListener("click", async (e) => {
+  if (scanBusy) return;
+  const copyIdx = e.target.dataset.copyOcr;
+  if (copyIdx !== undefined) {
+    const txt = scanPages[Number(copyIdx)]?.text || "";
+    if (txt) {
+      try {
+        await navigator.clipboard.writeText(txt);
+      } catch {
+        const ta = document.createElement("textarea");
+        ta.value = txt;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+      }
+      toast("Texto copiado para a área de transferência.");
+    }
+    return;
+  }
   const up = e.target.dataset.up;
   const dn = e.target.dataset.dn;
   const rm = e.target.dataset.rm;
@@ -400,6 +458,7 @@ $("scan-grid").addEventListener("click", (e) => {
   if (up || dn || rm) renderScan();
 });
 $("scan-clear").addEventListener("click", () => {
+  if (scanBusy) return;
   scanPages.length = 0;
   renderScan();
 });
@@ -427,39 +486,69 @@ $("scan-export").addEventListener("click", async () => {
 const drop = $("panel-scan");
 drop.addEventListener("dragover", (e) => {
   e.preventDefault();
+  drop.classList.add("drag-active");
   $("scan-empty").classList.add("drag");
 });
-drop.addEventListener("dragleave", () => $("scan-empty").classList.remove("drag"));
+drop.addEventListener("dragleave", () => {
+  drop.classList.remove("drag-active");
+  $("scan-empty").classList.remove("drag");
+});
 drop.addEventListener("drop", (e) => {
   e.preventDefault();
+  drop.classList.remove("drag-active");
   $("scan-empty").classList.remove("drag");
   addImages([...e.dataTransfer.files]);
 });
 
 /* MERGE */
 const mergeItems = [];
-$("merge-files").addEventListener("change", async (e) => {
+async function addMergeFiles(files) {
   fxShow("Lendo PDFs…");
-  for (const raw of e.target.files) {
-    const file = readFile(raw, "pdf");
-    if (!file) continue;
-    mergeItems.push({ name: sanitizeFilename(file.name), bytes: new Uint8Array(await file.arrayBuffer()) });
+  try {
+    for (const raw of files) {
+      const file = readFile(raw, "pdf");
+      if (!file) continue;
+      mergeItems.push({ name: sanitizeFilename(file.name), bytes: new Uint8Array(await file.arrayBuffer()) });
+    }
+    renderMerge();
+  } finally {
+    fxHide();
   }
+}
+$("merge-files").addEventListener("change", async (e) => {
+  await addMergeFiles([...e.target.files]);
   e.target.value = "";
-  renderMerge();
-  fxHide();
 });
+const mergeDrop = $("panel-merge");
+if (mergeDrop) {
+  mergeDrop.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    $("merge-empty").classList.add("drag");
+  });
+  mergeDrop.addEventListener("dragleave", () => $("merge-empty").classList.remove("drag"));
+  mergeDrop.addEventListener("drop", (e) => {
+    e.preventDefault();
+    $("merge-empty").classList.remove("drag");
+    addMergeFiles([...e.dataTransfer.files]);
+  });
+}
 function renderMerge() {
   $("merge-empty").classList.toggle("hide", mergeItems.length > 0);
   $("merge-list").innerHTML = mergeItems
     .map(
       (it, i) =>
-        `<div class="row"><strong>${escapeText(it.name)}</strong>
-        <span>
-          <button type="button" data-up="${i}">↑</button>
-          <button type="button" data-dn="${i}">↓</button>
-          <button type="button" data-rm="${i}">✕</button>
-        </span></div>`
+        `<div class="row">
+          <div class="row-info">
+            <span class="row-index">${String(i + 1).padStart(2, "0")}</span>
+            <strong>${escapeText(it.name)}</strong>
+          </div>
+          <span class="row-meta">
+            <span>${fmtBytes(it.bytes.length)}</span>
+            <button type="button" data-up="${i}" title="Subir">↑</button>
+            <button type="button" data-dn="${i}" title="Descer">↓</button>
+            <button type="button" data-rm="${i}" title="Remover">✕</button>
+          </span>
+        </div>`
     )
     .join("");
 }
@@ -503,6 +592,7 @@ $("merge-export").addEventListener("click", async () => {
 
 /* COMPRESS */
 const cmpItems = [];
+const cmpOutputs = [];
 const CMP_LEVEL = {
   extreme: { maxSide: 840, jpeg: 0.38, gray: true, label: "extrema" },
   recommended: { maxSide: 1080, jpeg: 0.5, gray: false, label: "recomendada" },
@@ -514,18 +604,27 @@ function fmtBytes(n) {
   return (n / 1048576).toFixed(2) + " MB";
 }
 function cmpLevel() {
-  const on = document.querySelector("#cmp-btns .look.on");
-  return (on && on.dataset.cmp) || "recommended";
+  const onb = document.querySelector("#cmp-btns .look.on");
+  return (onb && onb.dataset.cmp) || "recommended";
 }
 function renderCmpQueue() {
   const q = $("cmp-queue");
-  if (q) q.textContent = cmpItems.length ? cmpItems.length + " PDF(s) — " + fmtBytes(cmpItems.reduce((s, it) => s + it.bytes.length, 0)) : "Nenhum PDF na fila.";
+  if (q)
+    q.textContent = cmpItems.length
+      ? cmpItems.length + " PDF(s) — " + fmtBytes(cmpItems.reduce((s, it) => s + it.bytes.length, 0))
+      : "Nenhum PDF na fila.";
   const list = $("cmp-list");
   if (!list) return;
   list.innerHTML = cmpItems
     .map(
       (it, i) =>
-        `<div class="row"><strong>${escapeText(it.name)}</strong> <span>${fmtBytes(it.bytes.length)} <button type="button" data-crm="${i}">✕</button></span></div>`
+        `<div class="row">
+          <div class="row-info">
+            <span class="row-index">${String(i + 1).padStart(2, "0")}</span>
+            <strong>${escapeText(it.name)}</strong>
+          </div>
+          <span class="row-meta">${fmtBytes(it.bytes.length)} <button type="button" data-crm="${i}" title="Remover">✕</button></span>
+        </div>`
     )
     .join("");
 }
@@ -542,6 +641,7 @@ on("cmp-files", "change", async (e) => {
 });
 on("cmp-clear", "click", () => {
   cmpItems.length = 0;
+  cmpOutputs.length = 0;
   const out = $("cmp-out");
   if (out) out.innerHTML = "";
   const r = $("cmp-result");
@@ -550,17 +650,27 @@ on("cmp-clear", "click", () => {
 });
 document.addEventListener("click", (e) => {
   const t = e.target;
-  if (!t || t.dataset.crm === undefined) return;
-  if (!t.closest("#cmp-list")) return;
-  cmpItems.splice(Number(t.dataset.crm), 1);
-  renderCmpQueue();
+  if (!t) return;
+  if (t.dataset.crm !== undefined && t.closest("#cmp-list")) {
+    cmpItems.splice(Number(t.dataset.crm), 1);
+    renderCmpQueue();
+    return;
+  }
+  if (t.dataset.cmpDl !== undefined && t.closest("#cmp-out")) {
+    const item = cmpOutputs[Number(t.dataset.cmpDl)];
+    if (!item) return;
+    const blob = new Blob([item.bytes], { type: "application/pdf" });
+    const a = document.createElement("a");
+    a.href = trackUrl(URL.createObjectURL(blob));
+    a.download = sanitizeFilename(item.name) + ".pdf";
+    a.click();
+  }
 });
 on("cmp-btns", "click", (e) => {
   const btn = e.target.closest("[data-cmp]");
   if (!btn) return;
   document.querySelectorAll("#cmp-btns .look").forEach((b) => b.classList.toggle("on", b === btn));
 });
-
 function toGrayCanvas(canvas) {
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -571,7 +681,6 @@ function toGrayCanvas(canvas) {
   }
   ctx.putImageData(img, 0, 0);
 }
-
 async function rasterPdf(bytes, maxSide, jpeg, gray) {
   const pdf = await pdfjsLib.getDocument({ data: bytes.slice(0) }).promise;
   const { PDFDocument } = PDFLib;
@@ -595,7 +704,6 @@ async function rasterPdf(bytes, maxSide, jpeg, gray) {
   }
   return out.save();
 }
-
 async function compressPdfBytes(bytes, level) {
   if (!pdfjsLib || !PDFLib) throw new Error("PDF.js/PDF-lib não carregou");
   const cfg = CMP_LEVEL[level] || CMP_LEVEL.recommended;
@@ -616,7 +724,6 @@ async function compressPdfBytes(bytes, level) {
   if (best.length >= bytes.length) return { bytes: bytes.slice(0), same: true };
   return { bytes: best, same: false };
 }
-
 on("cmp-run", "click", async () => {
   if (!cmpItems.length) return toast("Adicione um PDF.");
   const level = cmpLevel();
@@ -624,19 +731,22 @@ on("cmp-run", "click", async () => {
   fxShow("Comprimindo PDF…");
   const out = $("cmp-out");
   if (out) out.innerHTML = "";
+  cmpOutputs.length = 0;
   try {
     const lines = [];
-    for (const it of cmpItems) {
+    for (let i = 0; i < cmpItems.length; i++) {
+      const it = cmpItems[i];
       const packed = await compressPdfBytes(it.bytes, level);
       const nome = it.name.replace(/\.pdf$/i, "") + "-comprimido";
       const before = it.bytes.length;
       const after = packed.bytes.length;
       const pct = before ? Math.round((1 - after / before) * 100) : 0;
+      cmpOutputs.push({ name: nome, bytes: packed.bytes });
       const delta =
         packed.same || after >= before
-          ? "já estava compacto — mantido o original"
-          : fmtBytes(before) + " → " + fmtBytes(after) + " (" + pct + "% menor)";
-      lines.push(`<div class="row"><strong>${escapeText(nome)}.pdf</strong> <span>${delta}</span></div>`);
+          ? `<span>já estava compacto — mantido o original</span>`
+          : `<span>${fmtBytes(before)} → ${fmtBytes(after)}</span> <span class="savings-pill">-${pct}%</span> <button type="button" data-cmp-dl="${i}">Baixar</button>`;
+      lines.push(`<div class="row"><strong>${escapeText(nome)}.pdf</strong> <span class="row-meta">${delta}</span></div>`);
       if (packed.same || after >= before) continue;
       const blob = new Blob([packed.bytes], { type: "application/pdf" });
       const a = document.createElement("a");
@@ -646,7 +756,7 @@ on("cmp-run", "click", async () => {
     }
     if (out) out.innerHTML = lines.join("");
     const r = $("cmp-result");
-    if (r) r.textContent = "Compressão " + cfg.label + " pronta. O download começa sozinho.";
+    if (r) r.textContent = "Compressão " + cfg.label + " pronta.";
     toast("PDF comprimido.");
   } catch (err) {
     console.error(err);
@@ -660,7 +770,7 @@ on("cmp-run", "click", async () => {
 let editState = null;
 if (pdfjsLib) {
   pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    new URL("./vendor/pdf.worker.min.js", import.meta.url).href;
 }
 
 $("edit-file").addEventListener("change", async (e) => {
@@ -694,7 +804,8 @@ async function renderEdit() {
   for (const pageIndex of editState.order) {
     if (editState.deleted.has(pageIndex)) continue;
     const page = await loading.getPage(pageIndex + 1);
-    const viewport = page.getViewport({ scale: 0.32, rotation: editState.rotations[pageIndex] });
+    const rotAngle = editState.rotations[pageIndex] || 0;
+    const viewport = page.getViewport({ scale: 0.34, rotation: rotAngle });
     const canvas = document.createElement("canvas");
     canvas.width = viewport.width;
     canvas.height = viewport.height;
@@ -702,12 +813,12 @@ async function renderEdit() {
     const card = document.createElement("article");
     card.className = "card";
     card.innerHTML = `<div class="thumb"></div>
-      <div class="meta"><span>Pág. ${pageIndex + 1}</span>
-        <span>
-          <button type="button" data-rot="${pageIndex}">⟳</button>
-          <button type="button" data-up="${pageIndex}">↑</button>
-          <button type="button" data-dn="${pageIndex}">↓</button>
-          <button type="button" data-rm="${pageIndex}">✕</button>
+      <div class="meta"><span>Pág. ${pageIndex + 1}${rotAngle ? ` · ${rotAngle}°` : ""}</span>
+        <span class="meta-actions">
+          <button type="button" data-rot="${pageIndex}" title="Girar 90°">⟳</button>
+          <button type="button" data-up="${pageIndex}" title="Mover antes">↑</button>
+          <button type="button" data-dn="${pageIndex}" title="Mover depois">↓</button>
+          <button type="button" data-rm="${pageIndex}" title="Excluir página">✕</button>
         </span></div>`;
     card.querySelector(".thumb").appendChild(canvas);
     grid.appendChild(card);
@@ -791,7 +902,7 @@ $("edit-export").addEventListener("click", async () => {
       });
     out.addPage(page);
   });
-  await downloadPdf(out, "editado.pdf");
+  await downloadPdf(out, nome);
   fxHide();
 });
 
@@ -847,19 +958,27 @@ function printCanvases(canvases) {
   if (!w) return toast("Permita pop-ups para imprimir.");
   w.document.write(
     `<html><head><title>Imprimir</title><style>
-      @page { margin: 10mm; }
+      @page { size: A4 portrait; margin: 10mm; }
       body { margin: 0; }
-      img { width: 100%; page-break-after: always; display: block; }
+      section { width: 190mm; height: 276mm; display: flex; align-items: center; justify-content: center; break-after: page; }
+      section:last-child { break-after: auto; }
+      img { display: block; width: 100%; height: 100%; object-fit: contain; }
     </style></head><body></body></html>`
   );
   canvases.forEach((c) => {
     const img = w.document.createElement("img");
     img.src = c.toDataURL("image/jpeg", 0.92);
-    w.document.body.appendChild(img);
+    const sheet = w.document.createElement("section");
+    sheet.appendChild(img);
+    w.document.body.appendChild(sheet);
   });
   w.document.close();
   w.focus();
-  setTimeout(() => w.print(), 400);
+  Promise.all(Array.from(w.document.images, (img) => img.decode()))
+    .then(() => {
+      if (!w.closed) w.print();
+    })
+    .catch(() => toast("Falha ao preparar a imagem para impressão."));
 }
 
 async function printPdfBytes(bytes) {
@@ -877,7 +996,7 @@ async function printPdfBytes(bytes) {
 }
 
 $("scan-print").addEventListener("click", () => {
-  printCanvases(scanPages.map((p) => p.canvas));
+  printCanvases(scanPages.map((p) => p.canvas).filter(Boolean));
 });
 $("merge-print").addEventListener("click", async () => {
   if (!mergeItems.length) return toast("Adicione PDFs.");
@@ -922,3 +1041,137 @@ on("edit-print", "click", async () => {
   fxHide();
 });
 
+// Explicit corner review also handles low contrast, shadows and clipped documents.
+let cornerPage = null,
+  cornerPoints = [],
+  dragCorner = -1;
+const cornerCanvas = $("corner-canvas");
+function drawCorners() {
+  const ctx = cornerCanvas.getContext("2d");
+  ctx.clearRect(0, 0, cornerCanvas.width, cornerCanvas.height);
+  ctx.drawImage(cornerPage.img, 0, 0, cornerCanvas.width, cornerCanvas.height);
+  ctx.strokeStyle = "#d92323";
+  ctx.lineWidth = 3;
+  ctx.fillStyle = "rgba(217, 35, 35, 0.14)";
+  ctx.beginPath();
+  cornerPoints.forEach((p, i) =>
+    ctx[i ? "lineTo" : "moveTo"](p.x * (cornerCanvas.width - 1), p.y * (cornerCanvas.height - 1))
+  );
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  cornerPoints.forEach((p, i) => {
+    const x = p.x * (cornerCanvas.width - 1),
+      y = p.y * (cornerCanvas.height - 1);
+    ctx.beginPath();
+    ctx.arc(x, y, 13, 0, Math.PI * 2);
+    ctx.fillStyle = "#141413";
+    ctx.fill();
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = "#ffffff";
+    ctx.stroke();
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 13px 'JetBrains Mono', monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(i + 1, x, y);
+  });
+}
+function fitCorners() {
+  if (!cornerPage) return;
+  const stage = $("corner-stage"),
+    w = cornerPage.img.naturalWidth || cornerPage.img.width,
+    h = cornerPage.img.naturalHeight || cornerPage.img.height;
+  const scale = Math.min(stage.clientWidth / w, stage.clientHeight / h, 1);
+  cornerCanvas.style.width = Math.floor(w * scale) + "px";
+  cornerCanvas.style.height = Math.floor(h * scale) + "px";
+  // Keep handles readable and hittable even for tall photographs on short screens.
+  cornerCanvas.width = Math.max(1, Math.floor(w * scale));
+  cornerCanvas.height = Math.max(1, Math.floor(h * scale));
+  drawCorners();
+}
+new ResizeObserver(fitCorners).observe($("corner-stage"));
+document.addEventListener("click", (e) => {
+  const button = e.target.closest("[data-corners]");
+  if (!button || scanBusy) return;
+  cornerPage = scanPages[Number(button.dataset.corners)];
+  const w = cornerPage.img.naturalWidth || cornerPage.img.width,
+    h = cornerPage.img.naturalHeight || cornerPage.img.height;
+  const scale = Math.min(1, 850 / Math.max(w, h));
+  cornerCanvas.width = Math.round(w * scale);
+  cornerCanvas.height = Math.round(h * scale);
+  cornerPoints = (
+    cornerPage.manual ||
+    cornerPage.scanInfo?.quad || [
+      { x: 0.05, y: 0.05 },
+      { x: 0.95, y: 0.05 },
+      { x: 0.95, y: 0.95 },
+      { x: 0.05, y: 0.95 },
+    ]
+  ).map((p) => ({ ...p }));
+  $("corner-modal").classList.remove("hide");
+  document.body.classList.add("adjusting-corners");
+  fitCorners();
+  $("corner-save").focus({ preventScroll: true });
+});
+function pointerCorner(e) {
+  const r = cornerCanvas.getBoundingClientRect();
+  return {
+    x: Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)),
+    y: Math.max(0, Math.min(1, (e.clientY - r.top) / r.height)),
+  };
+}
+cornerCanvas.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  const p = pointerCorner(e),
+    r = cornerCanvas.getBoundingClientRect();
+  const distances = cornerPoints.map((q) => Math.hypot((q.x - p.x) * r.width, (q.y - p.y) * r.height));
+  dragCorner = distances.indexOf(Math.min(...distances));
+  if (distances[dragCorner] > 44) {
+    dragCorner = -1;
+    return;
+  }
+  cornerCanvas.setPointerCapture(e.pointerId);
+});
+cornerCanvas.addEventListener("pointermove", (e) => {
+  if (dragCorner < 0) return;
+  cornerPoints[dragCorner] = pointerCorner(e);
+  drawCorners();
+});
+for (const name of ["pointerup", "pointercancel", "lostpointercapture"])
+  cornerCanvas.addEventListener(name, () => {
+    dragCorner = -1;
+  });
+$("corner-cancel").addEventListener("click", () => {
+  $("corner-modal").classList.add("hide");
+  document.body.classList.remove("adjusting-corners");
+  cornerPage = null;
+});
+$("corner-auto").addEventListener("click", () => {
+  cornerPage.manual = null;
+  cornerPage.base = null;
+  cornerPage.canvas = null;
+  cornerPage.scanInfo = null;
+  $("corner-modal").classList.add("hide");
+  document.body.classList.remove("adjusting-corners");
+  cornerPage = null;
+  renderScan();
+  document.querySelector('[data-mode="auto"]').click();
+  reprocessScan();
+});
+$("corner-save").addEventListener("click", () => {
+  const q = cornerPoints.map((p) => ({ x: p.x * 999, y: p.y * 999 }));
+  if (!isValidQuad(q, 1000, 1000)) {
+    toast("Os cantos precisam contornar a folha sem cruzar as bordas.");
+    return;
+  }
+  cornerPage.manual = cornerPoints.map((p) => ({ ...p }));
+  cornerPage.base = null;
+  cornerPage.canvas = null;
+  $("corner-modal").classList.add("hide");
+  document.body.classList.remove("adjusting-corners");
+  cornerPage = null;
+  renderScan();
+  document.querySelector('[data-mode="auto"]').click();
+  reprocessScan();
+});

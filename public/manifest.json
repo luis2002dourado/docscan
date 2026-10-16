@@ -1,19 +1,19 @@
 {
-  "id": "/docscan/",
+  "id": "./",
   "name": "DocScan",
   "short_name": "DocScan",
-  "description": "Digitalize, una e edite PDFs no navegador",
-  "start_url": "/docscan/",
-  "scope": "/docscan/",
+  "description": "Digitalize, una, edite e comprima PDFs direto no navegador com privacidade local.",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#cc0000",
-  "theme_color": "#cc0000",
+  "background_color": "#f5f4f0",
+  "theme_color": "#141413",
   "lang": "pt-BR",
   "prefer_related_applications": false,
   "icons": [
-    { "src": "/docscan/ds-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/docscan/ds-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/docscan/ds-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "/docscan/ds-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "ds-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "ds-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

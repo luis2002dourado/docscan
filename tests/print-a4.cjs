@@ -1,0 +1,11 @@
+// Optional private photo input stays outside the repository and test artifacts.
+const {chromium}=require('playwright'),{spawn}=require('child_process'),assert=require('node:assert/strict'),{PDFDocument}=require('pdf-lib');
+(async()=>{const server=spawn('node',['server.js'],{env:{...process.env,PORT:'8879'}});let browser;
+try{await new Promise(r=>server.stdout.once('data',r));browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox'],headless:true});const context=await browser.newContext();await context.addInitScript(()=>window.print=()=>{window.printCalled=true;});const page=await context.newPage();await page.route('https://**',r=>r.abort());await page.goto('http://127.0.0.1:8879/docscan/');
+const inputs=[process.env.DOCSCAN_TEST_PHOTO||'tests/fixtures/paisagem.png','tests/fixtures/frontal.png'];
+for(const input of inputs){await page.locator('#scan-clear').click();await page.locator('#scan-files').setInputFiles(input);await page.waitForFunction(()=>document.querySelector('#fx').classList.contains('hide'));await page.locator('#scan-apply').click();await page.waitForFunction(()=>document.querySelector('#fx').classList.contains('hide'));assert.match(await page.locator('.crop-status').innerText(),/Perspectiva corrigida/);
+if(input===process.env.DOCSCAN_TEST_PHOTO){const size=await page.locator('#scan-grid canvas').evaluate(c=>({w:c.width,h:c.height}));assert.ok(size.w/size.h>2.6&&size.w/size.h<3.1,'complete document expected');}
+const popupEvent=page.waitForEvent('popup');await page.locator('#scan-print').click();const popup=await popupEvent;await popup.waitForFunction(()=>document.images.length===1&&document.images[0].complete);await popup.emulateMedia({media:'print'});
+assert.equal(await popup.locator('img').evaluate(e=>getComputedStyle(e).objectFit),'contain');const bytes=await popup.pdf({preferCSSPageSize:true,printBackground:true});const pdf=await PDFDocument.load(bytes);assert.equal(pdf.getPageCount(),1);const {width,height}=pdf.getPage(0).getSize();assert.ok(Math.abs(width-595.28)<2&&Math.abs(height-841.89)<2,'A4 dimensions');await popup.close();}
+console.log('Actual photo/full document crop and landscape/portrait A4 print: PASS');
+}finally{await browser?.close();server.kill();}})().catch(e=>{console.error(e);process.exitCode=1;});

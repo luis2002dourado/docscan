@@ -1,0 +1,6 @@
+const {chromium}=require('playwright'),{spawn}=require('child_process'),assert=require('node:assert/strict');
+(async()=>{const server=spawn('node',['server.js'],{env:{...process.env,PORT:'8878'}});let browser;
+try{await new Promise(r=>server.stdout.once('data',r));browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox'],headless:true});const page=await browser.newPage({viewport:{width:390,height:664}});await page.route('https://**',r=>r.abort());await page.goto('http://127.0.0.1:8878/docscan/');await page.locator('#scan-files').setInputFiles('tests/fixtures/trapezio.png');await page.waitForFunction(()=>document.querySelector('#fx').classList.contains('hide'));await page.locator('[data-corners="0"]').click();
+await page.evaluate(()=>{const t=document.querySelector('#toast');t.textContent='Documento salvo';t.classList.remove('hide');});await page.waitForTimeout(400);
+assert.ok(await page.locator('#corner-save').evaluate(e=>{const r=e.getBoundingClientRect();return e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));}));await page.screenshot({path:'test-results/manual-viewport.png'});console.log('Apply button visible and unobstructed with toast');
+}finally{await browser?.close();server.kill();}})().catch(e=>{console.error(e);process.exitCode=1;});

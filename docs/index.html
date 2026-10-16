@@ -3,164 +3,404 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>DocScan</title>
-  <meta name="description" content="Digitalize, una e edite PDFs no navegador." />
-  <meta name="theme-color" content="#cc0000" />
+  <title>DocScan — Estúdio de Documentos e PDF</title>
+  <meta name="description" content="Digitalize documentos com correção de perspectiva, junte, edite e comprima PDFs direto no navegador com 100% de privacidade local." />
+  <meta name="theme-color" content="#141413" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="DocScan" />
-  <link rel="manifest" href="/docscan/manifest.json" />
-  <link rel="apple-touch-icon" href="/docscan/ds-192.png" />
-  <link rel="icon" type="image/png" sizes="192x192" href="/docscan/ds-192.png" />
-  <link rel="stylesheet" href="styles.css?v=19" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="ds-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=25" />
 </head>
 <body class="tool-only">
   <header class="top">
-    <span class="mark">
-      <svg class="logo" viewBox="0 0 100 100" width="48" height="48" aria-hidden="true">
-        <circle cx="50" cy="50" r="50" fill="#cc0000"/>
-        <circle cx="50" cy="50" r="38" fill="#9b0000"/>
-        <path d="M28 32h12v4H32v10h-4V32zm32 0h12v14h-4V36H60v-4zM28 64h4v10h8v4H28V64zm32 10v4h12V64h-4v10H60z" fill="#ffffff"/>
-        <rect x="36" y="34" width="28" height="34" rx="5" transform="rotate(-12 50 51)" fill="#ffffff"/>
-        <rect x="42" y="42" width="16" height="3.2" rx="1.5" transform="rotate(-12 50 44)" fill="#cc0000"/>
-        <rect x="42" y="48" width="16" height="3.2" rx="1.5" transform="rotate(-12 50 50)" fill="#cc0000"/>
-        <rect x="42" y="54" width="16" height="3.2" rx="1.5" transform="rotate(-12 50 56)" fill="#cc0000"/>
-      </svg>
-      <span class="brand-text">DocScan<span class="by">criado e desenvolvido por Luis Fernando</span></span>
-    </span>
+    <div class="top-inner">
+      <div class="brand-group">
+        <span class="mark">
+          <svg class="logo" viewBox="0 0 100 100" width="40" height="40" aria-hidden="true">
+            <rect width="100" height="100" rx="22" fill="#141413"/>
+            <rect x="8" y="8" width="84" height="84" rx="16" fill="none" stroke="#2c2b29" stroke-width="2"/>
+            <path d="M26 36V26h10M64 26h10v10M26 64v10h10M74 64v10H64" stroke="#d92323" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <rect x="35" y="31" width="30" height="38" rx="4" transform="rotate(-6 50 50)" fill="#ffffff"/>
+            <rect x="41" y="40" width="18" height="3" rx="1.5" transform="rotate(-6 50 41.5)" fill="#d92323"/>
+            <rect x="41" y="47" width="18" height="3" rx="1.5" transform="rotate(-6 50 48.5)" fill="#141413"/>
+            <rect x="41" y="54" width="12" height="3" rx="1.5" transform="rotate(-6 47 55.5)" fill="#78756f"/>
+          </svg>
+          <span class="brand-text">
+            <span class="brand-title-row">
+              <span class="brand-name">DocScan</span>
+              <span class="privacy-pill" title="Nenhum arquivo sai do seu aparelho">
+                <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M8 1.5a3.5 3.5 0 0 0-3.5 3.5v2H3.75A1.75 1.75 0 0 0 2 8.75v4.5C2 14.216 2.784 15 3.75 15h8.5A1.75 1.75 0 0 0 14 13.25v-4.5A1.75 1.75 0 0 0 12.25 7H11.5V5A3.5 3.5 0 0 0 8 1.5Zm2 5.5V5a2 2 0 1 0-4 0v2h4Z"/></svg>
+                100% Local
+              </span>
+            </span>
+            <span class="by">criado e desenvolvido por Luis Fernando</span>
+          </span>
+        </span>
+      </div>
+
+      <nav class="tabs" role="tablist" aria-label="Ferramentas do DocScan">
+        <button class="tab on" data-tab="scan" type="button" role="tab" aria-selected="true">
+          <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M4 6V4.5A1.5 1.5 0 0 1 5.5 3H7m6 0h1.5A1.5 1.5 0 0 1 16 4.5V6m0 8v1.5a1.5 1.5 0 0 1-1.5 1.5H13m-6 0H5.5A1.5 1.5 0 0 1 4 15.5V14M2.5 10h15"/></svg>
+          <span>Digitalizar</span>
+        </button>
+        <button class="tab" data-tab="merge" type="button" role="tab" aria-selected="false">
+          <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M6 3.5h8A1.5 1.5 0 0 1 15.5 5v8a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 13V5A1.5 1.5 0 0 1 6 3.5Zm-2 5v7A1.5 1.5 0 0 0 5.5 17h7"/></svg>
+          <span>Juntar PDFs</span>
+        </button>
+        <button class="tab" data-tab="edit" type="button" role="tab" aria-selected="false">
+          <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M3.5 6.5A2 2 0 0 1 5.5 4.5h5.8l4.2 4.2v5.8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-8Zm7.5-2v4h4"/></svg>
+          <span>Editar PDF</span>
+        </button>
+        <button class="tab" data-tab="compress" type="button" role="tab" aria-selected="false">
+          <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M4 13.5v2A1.5 1.5 0 0 0 5.5 17h9a1.5 1.5 0 0 0 1.5-1.5v-2M10 3v9.5m0 0-3.25-3.25M10 12.5l3.25-3.25"/></svg>
+          <span>Comprimir PDF</span>
+        </button>
+      </nav>
+
+      <div class="top-actions">
+        <button class="chip ghost install-header-btn" id="install-btn" type="button">
+          <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M10 3.5v8.5m0 0-3-3m3 3 3-3M4 14.5v1A1.5 1.5 0 0 0 5.5 17h9a1.5 1.5 0 0 0 1.5-1.5v-1"/></svg>
+          <span>Instalar app</span>
+        </button>
+      </div>
+    </div>
   </header>
 
   <main class="work">
-    <div class="tabs" role="tablist">
-      <button class="tab on" data-tab="scan" type="button">Digitalizar</button>
-      <button class="tab" data-tab="merge" type="button">Juntar PDFs</button>
-      <button class="tab" data-tab="edit" type="button">Editar PDF</button>
-      <button class="tab" data-tab="compress" type="button">Comprimir PDF</button>
-    </div>
+    <!-- PAINEL 1: DIGITALIZAR -->
+    <section id="panel-scan" class="panel on" role="tabpanel">
+      <div class="studio-layout">
+        <!-- Coluna Principal: Upload + Fila + Palco de Documentos -->
+        <div class="studio-main">
+          <div class="surface-card intake-card">
+            <div class="card-head">
+              <div>
+                <span class="step-badge">Passo 01</span>
+                <h3>Capturar ou enviar páginas</h3>
+              </div>
+              <div class="intake-meta">
+                <p id="scan-queue" class="note">Nenhum arquivo na fila.</p>
+                <button class="chip ghost sm" id="scan-clear" type="button">Limpar fila</button>
+              </div>
+            </div>
 
-    <div id="panel-scan" class="panel on">
-      <ol class="steps">
-        <li>
-          <h3>1. Enviar</h3>
-          <div class="tools">
-            <label class="chip">Arquivos<input id="scan-files" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple hidden /></label>
-            <label class="chip">Câmera<input id="scan-cam" type="file" accept="image/*" capture="environment" hidden /></label>
-            <label class="chk"><input type="checkbox" id="scan-ocr" /> OCR</label>
-            <button class="chip ghost" id="scan-clear" type="button">Limpar</button>
-          </div>
-          <p id="scan-queue" class="note">Nenhum arquivo na fila.</p>
-          <div id="scan-preview" class="grid preview-grid"></div>
-        </li>
-        <li>
-          <h3>2. Escolher recorte e realce</h3>
-          <select id="scan-mode" class="sr-only" aria-hidden="true">
-            <option value="auto" selected>auto</option>
-            <option value="none">none</option>
-          </select>
-          <p class="lbl">Recorte</p>
-          <div class="looks" id="mode-btns">
-            <button type="button" class="look on" data-mode="auto">Recortar folha</button>
-            <button type="button" class="look" data-mode="none">Foto inteira</button>
-          </div>
-          <select id="scan-look" class="sr-only" aria-hidden="true">
-            <option value="color_paper" selected>color_paper</option>
-            <option value="color_ink">color_ink</option>
-            <option value="color_vivid">color_vivid</option>
-            <option value="color_cool">color_cool</option>
-            <option value="original">original</option>
-            <option value="bw">bw</option>
-            <option value="bw_soft">bw_soft</option>
-          </select>
-          <p class="lbl">Realce</p>
-          <div class="looks" id="look-btns">
-            <button type="button" class="look on" data-look="color_paper">Colorido papel branco</button>
-            <button type="button" class="look" data-look="color_ink">Colorido tinta</button>
-            <button type="button" class="look" data-look="color_vivid">Cores vivas</button>
-            <button type="button" class="look" data-look="color_cool">Menos amarelo</button>
-            <button type="button" class="look" data-look="original">Original</button>
-            <button type="button" class="look" data-look="bw">P&B nítido</button>
-            <button type="button" class="look" data-look="bw_soft">P&B suave</button>
-          </div>
-          <button class="chip green apply" id="scan-apply" type="button">Aplicar mudanças</button>
-        </li>
-        <li>
-          <h3>3. Visualizar</h3>
-          <div class="tools">
-            <button class="chip" id="scan-print" type="button">Imprimir</button>
-            <button class="chip green" id="scan-export" type="button">Exportar PDF</button>
-          </div>
-          <div id="scan-empty" class="void">O resultado aparece aqui depois de Aplicar.</div>
-          <div id="scan-grid" class="grid"></div>
-        </li>
-      </ol>
-    </div>
+            <div class="dropzone-bar">
+              <div class="dropzone-copy">
+                <svg class="dropzone-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0-4 4m4-4 4 4M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"/></svg>
+                <div>
+                  <strong>Arraste fotos ou PDFs para esta área</strong>
+                  <span>JPG, PNG, WebP ou PDF até 25 MB · Processamento 100% no navegador</span>
+                </div>
+              </div>
+              <div class="tools intake-tools">
+                <label class="chip secondary">
+                  <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M4.5 13.5v2A1.5 1.5 0 0 0 6 17h8a1.5 1.5 0 0 0 1.5-1.5v-2M10 13V3.5m0 0L6.75 6.75M10 3.5l3.25 3.25"/></svg>
+                  <span>Arquivos</span>
+                  <input id="scan-files" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple hidden />
+                </label>
+                <label class="chip secondary">
+                  <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M3 7a2 2 0 0 1 2-2h1.38a1 1 0 0 0 .89-.55l.46-.9A1 1 0 0 1 8.62 3h2.76a1 1 0 0 1 .89.55l.46.9a1 1 0 0 0 .89.55H15a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/><circle cx="10" cy="10.5" r="2.75" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>
+                  <span>Câmera</span>
+                  <input id="scan-cam" type="file" accept="image/*" capture="environment" hidden />
+                </label>
+              </div>
+            </div>
 
-    <div id="panel-merge" class="panel">
-      <div class="tools">
-        <label class="chip">Adicionar PDFs<input id="merge-files" type="file" accept="application/pdf" multiple hidden /></label>
-        <button class="chip ghost" id="merge-clear" type="button">Limpar</button>
-        <button class="chip" id="merge-print" type="button">Imprimir</button>
-        <button class="chip green" id="merge-export" type="button">Baixar unido</button>
+            <div id="scan-preview" class="grid preview-grid"></div>
+          </div>
+
+          <div class="surface-card stage-card">
+            <div class="card-head stage-head">
+              <div>
+                <span class="step-badge">Passo 03</span>
+                <h3>Mesa de visualização e revisão</h3>
+              </div>
+              <div class="tools stage-tools">
+                <button class="chip secondary" id="scan-print" type="button">
+                  <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M6 6V3.5h8V6M6 14H4.5A1.5 1.5 0 0 1 3 12.5v-4A1.5 1.5 0 0 1 4.5 7h11A1.5 1.5 0 0 1 17 8.5v4a1.5 1.5 0 0 1-1.5 1.5H14m-8-2.5h8v5H6v-5Z"/></svg>
+                  <span>Imprimir</span>
+                </button>
+                <button class="chip green" id="scan-export" type="button">
+                  <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4 13.5v2A1.5 1.5 0 0 0 5.5 17h9a1.5 1.5 0 0 0 1.5-1.5v-2M10 3.5v9m0 0-3-3m3 3 3-3"/></svg>
+                  <span>Exportar PDF</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="stage-well">
+              <div id="scan-empty" class="void">
+                <div class="void-inner">
+                  <svg viewBox="0 0 48 48" width="42" height="42" aria-hidden="true">
+                    <rect x="10" y="6" width="28" height="36" rx="4" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/>
+                    <path d="M17 18h14M17 24h14M17 30h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  <p class="void-title">O resultado aparece aqui depois de Aplicar.</p>
+                  <span class="void-sub">Adicione suas páginas acima e clique em <strong>Aplicar mudanças</strong> para endireitar a perspectiva e realçar o texto.</span>
+                </div>
+              </div>
+              <div id="scan-grid" class="grid"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Coluna Lateral: Inspetor de Recorte e Realce -->
+        <aside class="studio-sidebar">
+          <div class="surface-card inspector-card">
+            <div class="card-head">
+              <div>
+                <span class="step-badge">Passo 02</span>
+                <h3>Recorte e acabamento</h3>
+              </div>
+            </div>
+
+            <select id="scan-mode" class="sr-only" aria-hidden="true" tabindex="-1">
+              <option value="auto" selected>auto</option>
+              <option value="none">none</option>
+            </select>
+
+            <div class="control-block">
+              <p class="lbl">Geometria da folha</p>
+              <div class="segmented-2" id="mode-btns">
+                <button type="button" class="look on" data-mode="auto">
+                  <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" d="M2 5V2.5h2.5M11.5 2.5H14V5M2 11v2.5h2.5M14 11v2.5h-2.5"/></svg>
+                  <span>Recortar folha</span>
+                </button>
+                <button type="button" class="look" data-mode="none">
+                  <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+                  <span>Foto inteira</span>
+                </button>
+              </div>
+            </div>
+
+            <select id="scan-look" class="sr-only" aria-hidden="true" tabindex="-1">
+              <option value="color_paper" selected>color_paper</option>
+              <option value="color_ink">color_ink</option>
+              <option value="color_vivid">color_vivid</option>
+              <option value="color_cool">color_cool</option>
+              <option value="original">original</option>
+              <option value="bw">bw</option>
+              <option value="bw_soft">bw_soft</option>
+            </select>
+
+            <div class="control-block">
+              <p class="lbl">Perfil de realce</p>
+              <div class="looks" id="look-btns">
+                <button type="button" class="look on" data-look="color_paper">
+                  <span class="swatch sw-paper"></span>
+                  <span>Colorido papel branco</span>
+                </button>
+                <button type="button" class="look" data-look="color_ink">
+                  <span class="swatch sw-ink"></span>
+                  <span>Colorido tinta</span>
+                </button>
+                <button type="button" class="look" data-look="color_vivid">
+                  <span class="swatch sw-vivid"></span>
+                  <span>Cores vivas</span>
+                </button>
+                <button type="button" class="look" data-look="color_cool">
+                  <span class="swatch sw-cool"></span>
+                  <span>Menos amarelo</span>
+                </button>
+                <button type="button" class="look" data-look="bw">
+                  <span class="swatch sw-bw"></span>
+                  <span>P&amp;B nítido</span>
+                </button>
+                <button type="button" class="look" data-look="bw_soft">
+                  <span class="swatch sw-bwsoft"></span>
+                  <span>P&amp;B suave</span>
+                </button>
+                <button type="button" class="look span-2" data-look="original">
+                  <span class="swatch sw-orig"></span>
+                  <span>Original (sem filtro)</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="control-block ocr-block">
+              <label class="chk" for="scan-ocr">
+                <input type="checkbox" id="scan-ocr" />
+                <span class="chk-copy">
+                  <strong>Extrair texto (OCR)</strong>
+                  <small>Reconhece texto em português e inglês</small>
+                </span>
+              </label>
+            </div>
+
+            <button class="chip green apply" id="scan-apply" type="button">
+              <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="m4.5 10.5 3.5 3.5 7.5-7.5"/></svg>
+              <span>Aplicar mudanças</span>
+            </button>
+          </div>
+        </aside>
       </div>
-      <div id="merge-empty" class="void">Adicione PDFs para juntar.</div>
-      <div id="merge-list" class="rows"></div>
-    </div>
+    </section>
 
-    <div id="panel-edit" class="panel">
-      <div class="tools">
-        <label class="chip">Abrir PDF<input id="edit-file" type="file" accept="application/pdf" hidden /></label>
-        <button class="chip" id="edit-text" type="button">Inserir texto</button>
-        <button class="chip" id="edit-print" type="button">Imprimir</button>
-        <button class="chip ghost" id="edit-clear" type="button">Fechar</button>
-        <button class="chip green" id="edit-export" type="button">Salvar PDF</button>
-      </div>
-      <div id="edit-empty" class="void">Abra um PDF para girar, reordenar ou apagar páginas.</div>
-      <div id="edit-grid" class="grid"></div>
-    </div>
-
-    <div id="panel-compress" class="panel">
-      <ol class="steps">
-        <li>
-          <h3>1. Enviar PDF</h3>
+    <!-- PAINEL 2: JUNTAR PDFS -->
+    <section id="panel-merge" class="panel" role="tabpanel">
+      <div class="surface-card single-panel-card">
+        <div class="card-head">
+          <div>
+            <span class="step-badge">Unificador</span>
+            <h3>Juntar múltiplos arquivos PDF</h3>
+            <p class="note">Adicione dois ou mais PDFs, defina a ordem exata e gere um arquivo único.</p>
+          </div>
           <div class="tools">
-            <label class="chip">Arquivos PDF<input id="cmp-files" type="file" accept="application/pdf" multiple hidden /></label>
-            <button class="chip ghost" id="cmp-clear" type="button">Limpar</button>
+            <label class="chip secondary">
+              <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" d="M10 4v12M4 10h12"/></svg>
+              <span>Adicionar PDFs</span>
+              <input id="merge-files" type="file" accept="application/pdf" multiple hidden />
+            </label>
+            <button class="chip ghost" id="merge-clear" type="button">Limpar</button>
+            <button class="chip secondary" id="merge-print" type="button">Imprimir</button>
+            <button class="chip green" id="merge-export" type="button">Baixar unido</button>
           </div>
-          <p id="cmp-queue" class="note">Nenhum PDF na fila.</p>
-          <div id="cmp-list" class="rows"></div>
-        </li>
-        <li>
-          <h3>2. Nível de compressão</h3>
-          <p class="lbl">Como no iLovePDF: quanto mais compressão, menor o arquivo (pode perder um pouco de nitidez).</p>
-          <div class="looks" id="cmp-btns">
-            <button type="button" class="look" data-cmp="extreme">Extrema</button>
-            <button type="button" class="look on" data-cmp="recommended">Recomendada</button>
-            <button type="button" class="look" data-cmp="less">Menos compressão</button>
+        </div>
+
+        <div class="stage-well">
+          <div id="merge-empty" class="void">
+            <div class="void-inner">
+              <p class="void-title">Adicione PDFs para juntar.</p>
+              <span class="void-sub">Use o botão <strong>Adicionar PDFs</strong> ou arraste arquivos PDF para cá.</span>
+            </div>
           </div>
-          <button class="chip green apply" id="cmp-run" type="button">Comprimir</button>
-        </li>
-        <li>
-          <h3>3. Resultado</h3>
-          <p id="cmp-result" class="note">O PDF comprimido aparece aqui.</p>
-          <div id="cmp-out" class="rows"></div>
-        </li>
-      </ol>
-    </div>
+          <div id="merge-list" class="rows"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAINEL 3: EDITAR PDF -->
+    <section id="panel-edit" class="panel" role="tabpanel">
+      <div class="surface-card single-panel-card">
+        <div class="card-head">
+          <div>
+            <span class="step-badge">Organizador de Páginas</span>
+            <h3>Girar, reordenar, anotar ou remover páginas</h3>
+            <p class="note">Abra um documento PDF para visualizar e manipular cada página individualmente.</p>
+          </div>
+          <div class="tools">
+            <label class="chip secondary">
+              <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M3.5 6.5A2 2 0 0 1 5.5 4.5h5.8l4.2 4.2v5.8a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-8Z"/></svg>
+              <span>Abrir PDF</span>
+              <input id="edit-file" type="file" accept="application/pdf" hidden />
+            </label>
+            <button class="chip secondary" id="edit-text" type="button">Inserir texto</button>
+            <button class="chip secondary" id="edit-print" type="button">Imprimir</button>
+            <button class="chip ghost" id="edit-clear" type="button">Fechar</button>
+            <button class="chip green" id="edit-export" type="button">Salvar PDF</button>
+          </div>
+        </div>
+
+        <div class="stage-well">
+          <div id="edit-empty" class="void">
+            <div class="void-inner">
+              <p class="void-title">Abra um PDF para girar, reordenar ou apagar páginas.</p>
+              <span class="void-sub">Selecione um arquivo acima para carregar as miniaturas das páginas.</span>
+            </div>
+          </div>
+          <div id="edit-grid" class="grid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAINEL 4: COMPRIMIR PDF -->
+    <section id="panel-compress" class="panel" role="tabpanel">
+      <div class="studio-layout">
+        <div class="studio-main">
+          <div class="surface-card">
+            <div class="card-head">
+              <div>
+                <span class="step-badge">Passo 01</span>
+                <h3>Selecionar PDFs para reduzir tamanho</h3>
+              </div>
+              <div class="tools">
+                <label class="chip secondary">
+                  <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" d="M10 4v12M4 10h12"/></svg>
+                  <span>Arquivos PDF</span>
+                  <input id="cmp-files" type="file" accept="application/pdf" multiple hidden />
+                </label>
+                <button class="chip ghost" id="cmp-clear" type="button">Limpar</button>
+              </div>
+            </div>
+            <p id="cmp-queue" class="note">Nenhum PDF na fila.</p>
+            <div id="cmp-list" class="rows"></div>
+          </div>
+
+          <div class="surface-card">
+            <div class="card-head">
+              <div>
+                <span class="step-badge">Passo 03</span>
+                <h3>Resultado da compressão</h3>
+              </div>
+            </div>
+            <p id="cmp-result" class="note">O PDF comprimido aparece aqui.</p>
+            <div id="cmp-out" class="rows"></div>
+          </div>
+        </div>
+
+        <aside class="studio-sidebar">
+          <div class="surface-card inspector-card">
+            <div class="card-head">
+              <div>
+                <span class="step-badge">Passo 02</span>
+                <h3>Nível de compressão</h3>
+              </div>
+            </div>
+            <p class="note inspector-desc">Quanto maior a compressão, menor o arquivo final (pode reduzir um pouco a nitidez).</p>
+            <div class="looks cmp-looks" id="cmp-btns">
+              <button type="button" class="look" data-cmp="extreme">
+                <span>Extrema</span>
+                <small class="look-sub">Menor peso (P&amp;B · 840px)</small>
+              </button>
+              <button type="button" class="look on" data-cmp="recommended">
+                <span>Recomendada</span>
+                <small class="look-sub">Equilíbrio ideal (Cor · 1080px)</small>
+              </button>
+              <button type="button" class="look" data-cmp="less">
+                <span>Menos compressão</span>
+                <small class="look-sub">Alta leitura (Cor · 1280px)</small>
+              </button>
+            </div>
+            <button class="chip green apply" id="cmp-run" type="button">Comprimir</button>
+          </div>
+        </aside>
+      </div>
+    </section>
   </main>
+
   <footer class="credit">
-    <p class="aviso">Nenhum documento fica armazenado. Tudo roda só no seu aparelho e some ao fechar a aba, por segurança.</p>
-    <button class="chip green" id="install-btn" type="button">Instalar aplicativo</button>
-    <p>© DocScan · criado e desenvolvido por Luis Fernando. Todos os direitos reservados.</p>
+    <div class="credit-inner">
+      <p class="aviso">
+        <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm0 3a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4Zm0 7.5a.875.875 0 1 1 0-1.75.875.875 0 0 1 0 1.75Z"/></svg>
+        <span>Nenhum documento fica armazenado. Tudo roda exclusivamente no seu aparelho e desaparece ao fechar a aba.</span>
+      </p>
+      <p class="copyright">© DocScan · criado e desenvolvido por Luis Fernando. Todos os direitos reservados.</p>
+    </div>
   </footer>
 
-  <div id="modal" class="modal hide">
+  <!-- MODAL: TEXTO NA PÁGINA -->
+  <div id="modal" class="modal hide" role="dialog" aria-modal="true" aria-labelledby="text-modal-title">
     <div class="sheet">
-      <h3>Texto na página</h3>
-      <label>Página <select id="text-page"></select></label>
-      <label>Conteúdo <input id="text-content" maxlength="200" /></label>
+      <h3 id="text-modal-title">Inserir texto na página</h3>
+      <p class="note">Escolha a página e a posição relativa (em porcentagem a partir do topo esquerdo).</p>
+      <label class="field-label">Página
+        <select id="text-page"></select>
+      </label>
+      <label class="field-label">Conteúdo
+        <input id="text-content" type="text" maxlength="200" placeholder="Digite a anotação ou protocolo…" />
+      </label>
       <div class="duo">
-        <label>X % <input id="text-x" type="number" value="10" min="0" max="100" /></label>
-        <label>Y % <input id="text-y" type="number" value="10" min="0" max="100" /></label>
+        <label class="field-label">Posição X (%)
+          <input id="text-x" type="number" value="10" min="0" max="100" />
+        </label>
+        <label class="field-label">Posição Y (%)
+          <input id="text-y" type="number" value="10" min="0" max="100" />
+        </label>
       </div>
       <div class="actions">
         <button type="button" id="text-cancel" class="chip ghost">Cancelar</button>
@@ -168,21 +408,40 @@
       </div>
     </div>
   </div>
-  <div id="name-modal" class="modal hide">
+
+  <!-- MODAL: AJUSTAR QUATRO CANTOS -->
+  <div id="corner-modal" class="modal hide" role="dialog" aria-modal="true" aria-labelledby="corner-title">
+    <div class="sheet corner-sheet">
+      <div class="corner-header">
+        <h3 id="corner-title">Ajustar os quatro cantos</h3>
+        <p class="note">Arraste cada ponto numerado até o canto correspondente da folha.</p>
+      </div>
+      <div id="corner-stage"><canvas id="corner-canvas" aria-label="Prévia para ajustar os cantos do documento"></canvas></div>
+      <div class="actions">
+        <button id="corner-cancel" class="chip ghost" type="button">Cancelar</button>
+        <button id="corner-auto" class="chip secondary" type="button">Detectar novamente</button>
+        <button id="corner-save" class="chip green" type="button">Aplicar recorte</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: NOME DO PDF -->
+  <div id="name-modal" class="modal hide" role="dialog" aria-modal="true" aria-labelledby="name-modal-title">
     <div class="sheet">
-      <h3>Como vai se chamar o PDF?</h3>
-      <label>Nome do arquivo
-        <input id="pdf-name" maxlength="80" placeholder="meu-documento" />
+      <h3 id="name-modal-title">Como vai se chamar o PDF?</h3>
+      <label class="field-label">Nome do arquivo
+        <input id="pdf-name" type="text" maxlength="80" placeholder="meu-documento" />
       </label>
-      <p class="note">A extensão .pdf é adicionada sozinha.</p>
+      <p class="note">A extensão <code>.pdf</code> é adicionada automaticamente.</p>
       <div class="actions">
         <button type="button" id="name-cancel" class="chip ghost">Cancelar</button>
         <button type="button" id="name-ok" class="chip green">Salvar</button>
       </div>
     </div>
   </div>
-  <div id="toast" class="toast hide" role="status"></div>
-  <div id="fx" class="fx-overlay hide">
+
+  <div id="toast" class="toast hide" role="status" aria-live="polite"></div>
+  <div id="fx" class="fx-overlay hide" aria-live="assertive">
     <div class="fx-card">
       <div class="spinner"></div>
       <p id="fx-msg">Processando…</p>
@@ -190,9 +449,9 @@
     </div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="vendor/pdf.min.js"></script>
+  <script src="vendor/pdf-lib.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <script type="module" src="app.js?v=19"></script>
+  <script type="module" src="app.js?v=25"></script>
 </body>
 </html>
